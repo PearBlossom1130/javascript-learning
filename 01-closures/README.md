@@ -10,6 +10,49 @@
 2. **데이터 은닉**: 외부에서 직접 접근할 수 없는 프라이빗 변수를 만들 수 있습니다
 3. **상태 유지**: 함수가 반환된 후에도 외부 함수의 변수를 계속 참조할 수 있습니다
 
+## 렉시컬 환경이란? 🎒
+
+**렉시컬 환경(Lexical Environment)**은 함수가 만들어질 때의 **주변 환경**을 말합니다.
+
+### 쉽게 이해하기
+
+```javascript
+function outer() {
+  const name = '철수';  // outer의 렉시컬 환경에 있는 변수
+  
+  function inner() {
+    console.log(name);  // inner는 outer의 환경을 기억함
+  }
+  
+  return inner;
+}
+```
+
+- `inner` 함수는 **태어날 때**(선언될 때) `outer` 함수 안에 있었습니다
+- 그래서 `inner`는 `outer`의 변수(`name`)를 평생 기억합니다
+- `outer`가 실행이 끝나도 `inner`는 `name`을 계속 사용할 수 있습니다
+
+### 렉시컬(Lexical)의 의미
+
+"렉시컬"은 **"코드가 작성된 위치"**를 의미합니다. 
+- 함수가 **어디서 실행되는지**가 아니라
+- 함수가 **어디서 선언되었는지**가 중요합니다
+
+```javascript
+const x = 10;
+
+function inner() {
+  console.log(x);  // 선언된 위치에서 x를 찾음
+}
+
+function outer() {
+  const x = 20;
+  inner();  // 10 출력 (20이 아님!)
+}
+
+outer();
+```
+
 ## 왜 중요한가?
 
 - 데이터 프라이버시와 캡슐화 구현
