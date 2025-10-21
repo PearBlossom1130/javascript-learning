@@ -801,8 +801,115 @@ const double = createMultiplier(2);
 const result = arr.map(double);  // 하나의 클로저 재사용
 ```
 
+### 반복문이란? 🔄
+
+**반복문(Loop)**은 같은 코드를 여러 번 실행하는 구문입니다.
+
+JavaScript의 주요 반복문:
+
+**1. for 문:**
+```javascript
+for (let i = 0; i < 5; i++) {
+  console.log(i);  // 0, 1, 2, 3, 4
+}
+```
+
+**2. while 문:**
+```javascript
+let i = 0;
+while (i < 5) {
+  console.log(i);
+  i++;
+}
+```
+
+**3. do-while 문:**
+```javascript
+let i = 0;
+do {
+  console.log(i);
+  i++;
+} while (i < 5);
+```
+
+**4. for...of 문 (배열 반복):**
+```javascript
+const arr = [1, 2, 3];
+for (let item of arr) {
+  console.log(item);  // 1, 2, 3
+}
+```
+
+**5. for...in 문 (객체 속성 반복):**
+```javascript
+const obj = { a: 1, b: 2 };
+for (let key in obj) {
+  console.log(key);  // 'a', 'b'
+}
+```
+
+**6. 배열 메서드 (forEach, map 등):**
+```javascript
+[1, 2, 3].forEach(function(item) {
+  console.log(item);
+});
+```
+
+**클로저 문제가 발생하는 반복문:**
+
+모든 반복문에서 `var` 사용 시 클로저 문제가 발생할 수 있습니다!
+
+```javascript
+// ❌ for 문에서 var
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// 출력: 3, 3, 3
+
+// ✅ for 문에서 let
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// 출력: 0, 1, 2
+```
+
+```javascript
+// ❌ while 문에서 var
+var i = 0;
+var funcs = [];
+while (i < 3) {
+  funcs.push(() => console.log(i));
+  i++;
+}
+funcs[0]();  // 3
+
+// ✅ while 문에서 let 활용
+let funcs2 = [];
+for (let i = 0; i < 3; i++) {  // while 대신 for + let
+  funcs2.push(() => console.log(i));
+}
+funcs2[0]();  // 0
+```
+
+```javascript
+// ❌ forEach에서도 주의
+var funcs = [];
+[0, 1, 2].forEach(function(i) {
+  funcs.push(() => console.log(i));
+});
+funcs[0]();  // 0 (forEach는 각 콜백이 새 스코프라 괜찮음)
+
+// 하지만 외부 변수 사용 시 문제
+var index = 0;
+[0, 1, 2].forEach(function(item) {
+  setTimeout(() => console.log(index), 100);
+  index++;
+});
+// 출력: 3, 3, 3
+```
+
 **핵심 요약:**
-- 💡 **let 사용**: 반복문에서는 항상 `let` 사용
+- 💡 **let 사용**: 반복문(for, while, for...of 등)에서는 항상 `let` 사용
 - 🗑️ **필요한 것만 참조**: 큰 데이터는 필요한 부분만 추출
 - 🧹 **정리**: 이벤트 리스너 등은 필요 없을 때 제거
 - ⚖️ **적절히 사용**: 모든 곳에 클로저를 쓸 필요는 없음
