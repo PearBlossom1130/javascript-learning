@@ -587,10 +587,225 @@ fastFib(10);  // 캐시에서 반환
 
 클로저는 배낭을 메고 다니는 것과 비슷합니다. 함수가 생성될 때 배낭(렉시컬 환경)을 메고, 어디를 가든 그 배낭 안의 물건(변수)을 사용할 수 있습니다.
 
-## 주의사항
+## 주의사항 ⚠️
 
-- 메모리 누수 가능성: 필요 이상으로 변수를 참조하지 않도록 주의
-- 반복문에서 클로저 사용 시 주의 (let vs var)
+### 1. 메모리 누수 가능성
+
+클로저가 큰 데이터를 참조하면 가비지 컬렉션이 되지 않아 메모리 누수가 발생할 수 있습니다.
+
+**❌ 나쁜 예 - 메모리 누수:**
+
+```javascript
+function createLeak() {
+  const hugeArray = new Array(1000000).fill('big data');
+  const hugeString = 'x'.repeat(1000000);
+  
+  return function() {
+    // hugeArray와 hugeString을 사용하지 않지만
+    // 클로저가 외부 스코프 전체를 참조하므로
+    // 메모리에 계속 남아있음
+    return '작은 결과';
+  };
+}
+
+const leak = createLeak();
+// hugeArray와 hugeString이 메모리에 계속 남음!
+```
+
+**✅ 좋은 예 - 필요한 것만 참조:**
+
+```javascript
+function createNoLeak() {
+  const hugeArray = new Array(1000000).fill('big data');
+  
+  // 필요한 것만 추출
+  const needed = hugeArray.length;
+  
+  return function() {
+    // hugeArray 대신 필요한 값만 참조
+    return `배열 길이: ${needed}`;
+  };
+}
+
+const noLeak = createNoLeak();
+// hugeArray는 가비지 컬렉션됨 ✓
+```
+
+**실제 예시 - 이벤트 리스너:**
+
+```javascript
+// ❌ 메모리 누수 발생
+function setupButton() {
+  const largeData = { /* 큰 데이터 */ };
+  const button = document.getElementById('myButton');
+  
+  button.addEventListener('click', function() {
+    console.log('클릭!');
+    // largeData를 사용하지 않지만 참조하고 있음
+  });
+}
+
+// ✅ 메모리 누수 방지
+function setupButtonSafe() {
+  const largeData = { /* 큰 데이터 */ };
+  const button = document.getElementById('myButton');
+  
+  // 필요한 것만 추출
+  const needed = largeData.someProperty;
+  
+  button.addEventListener('click', function() {
+    console.log('클릭!', needed);
+  });
+  
+  // 또는 이벤트 제거
+  // button.removeEventListener('click', handler);
+}
+```
+
+### 2. 반복문에서 클로저 사용 시 주의 (var vs let)
+
+**❌ 문제 발생 - var 사용:**
+
+```javascript
+function createFunctions() {
+  var functions = [];
+  
+  for (var i = 0; i < 3; i++) {
+    functions.push(function() {
+      console.log(i);  // 모두 같은 i를 참조
+    });
+  }
+  
+  return functions;
+}
+
+const funcs = createFunctions();
+funcs[0]();  // 3 (예상: 0)
+funcs[1]();  // 3 (예상: 1)
+funcs[2]();  // 3 (예상: 2)
+
+// 왜? var는 함수 스코프이므로
+// 루프가 끝난 후 i = 3이 되고
+// 모든 클로저가 같은 i를 참조
+```
+
+**✅ 해결 방법 1 - let 사용:**
+
+```javascript
+function createFunctions() {
+  var functions = [];
+  
+  for (let i = 0; i < 3; i++) {  // let 사용!
+    functions.push(function() {
+      console.log(i);
+    });
+  }
+  
+  return functions;
+}
+
+const funcs = createFunctions();
+funcs[0]();  // 0 ✓
+funcs[1]();  // 1 ✓
+funcs[2]();  // 2 ✓
+
+// let은 블록 스코프이므로
+// 각 반복마다 새로운 i가 생성됨
+```
+
+**✅ 해결 방법 2 - IIFE 사용 (과거 방식):**
+
+```javascript
+function createFunctions() {
+  var functions = [];
+  
+  for (var i = 0; i < 3; i++) {
+    functions.push((function(index) {  // 즉시 실행 함수
+      return function() {
+        console.log(index);
+      };
+    })(i));  // i를 매개변수로 전달
+  }
+  
+  return functions;
+}
+
+const funcs = createFunctions();
+funcs[0]();  // 0 ✓
+funcs[1]();  // 1 ✓
+funcs[2]();  // 2 ✓
+```
+
+**실제 예시 - 이벤트 핸들러:**
+
+```javascript
+// ❌ 문제 발생
+for (var i = 1; i <= 3; i++) {
+  const button = document.getElementById(`btn${i}`);
+  button.addEventListener('click', function() {
+    alert(`버튼 ${i} 클릭`);  // 모두 '버튼 4 클릭'
+  });
+}
+
+// ✅ let 사용
+for (let i = 1; i <= 3; i++) {
+  const button = document.getElementById(`btn${i}`);
+  button.addEventListener('click', function() {
+    alert(`버튼 ${i} 클릭`);  // 올바른 번호
+  });
+}
+
+// ✅ 또는 data attribute 활용
+for (var i = 1; i <= 3; i++) {
+  const button = document.getElementById(`btn${i}`);
+  button.dataset.index = i;
+  button.addEventListener('click', function() {
+    alert(`버튼 ${this.dataset.index} 클릭`);
+  });
+}
+```
+
+### 3. 클로저 과다 사용
+
+**❌ 불필요한 클로저:**
+
+```javascript
+function processArray(arr) {
+  // 모든 요소에 클로저 생성
+  return arr.map(function(item) {
+    return function() {
+      return item * 2;
+    };
+  });
+}
+
+// 1000개 배열이면 1000개 클로저 생성!
+```
+
+**✅ 필요할 때만 사용:**
+
+```javascript
+function processArray(arr) {
+  // 단순 연산은 클로저 없이
+  return arr.map(item => item * 2);
+}
+
+// 또는 클로저가 정말 필요한 경우만
+function createMultiplier(factor) {
+  return function(item) {
+    return item * factor;
+  };
+}
+
+const double = createMultiplier(2);
+const result = arr.map(double);  // 하나의 클로저 재사용
+```
+
+**핵심 요약:**
+- 💡 **let 사용**: 반복문에서는 항상 `let` 사용
+- 🗑️ **필요한 것만 참조**: 큰 데이터는 필요한 부분만 추출
+- 🧹 **정리**: 이벤트 리스너 등은 필요 없을 때 제거
+- ⚖️ **적절히 사용**: 모든 곳에 클로저를 쓸 필요는 없음
 
 ## 다음 단계
 
