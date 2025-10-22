@@ -234,6 +234,280 @@ const person2 = new Person('영희');
 console.log(person2); // Person { name: '영희' }
 ```
 
+#### **일반 함수에서도 this 사용 가능**
+
+**✅ 맞습니다! `this`는 생성자 함수가 아니어도 일반 함수에서 사용할 수 있습니다.**
+
+```javascript
+// 1. 일반 함수에서 this 사용
+function greet() {
+  console.log(`안녕하세요, ${this.name}님!`);
+}
+
+// 2. 객체의 메서드로 사용
+const person = { name: '철수' };
+person.sayHello = greet;
+person.sayHello(); // "안녕하세요, 철수님!"
+
+// 3. call/apply로 this 지정
+greet.call({ name: '영희' }); // "안녕하세요, 영희님!"
+greet.apply({ name: '민수' }); // "안녕하세요, 민수님!"
+
+// 4. bind로 this 고정
+const boundGreet = greet.bind({ name: '지영' });
+boundGreet(); // "안녕하세요, 지영님!"
+```
+
+**🔍 this 사용의 핵심:**
+
+```javascript
+// this는 함수가 "어떻게 호출되었는지"에 따라 결정됩니다
+function showThis() {
+  console.log('this:', this);
+  console.log('this.name:', this.name);
+}
+
+// 1. 일반 호출 (기본 바인딩)
+showThis(); // this는 전역 객체
+
+// 2. 객체 메서드로 호출 (암시적 바인딩)
+const obj = { name: '객체', method: showThis };
+obj.method(); // this는 obj
+
+// 3. call로 호출 (명시적 바인딩)
+showThis.call({ name: 'call로 지정' }); // this는 { name: 'call로 지정' }
+
+// 4. new로 호출 (new 바인딩)
+const instance = new (function() {
+  this.name = 'new로 생성';
+  showThis.call(this);
+})();
+```
+
+**📝 생성자 함수 vs 일반 함수의 차이:**
+
+| 구분 | 생성자 함수 | 일반 함수 |
+|------|-------------|-----------|
+| **this 사용** | ✅ 가능 | ✅ 가능 |
+| **new 호출** | ✅ 가능 | ❌ 불가능 (에러 발생) |
+| **목적** | 객체 생성 | 일반적인 작업 |
+| **명명 규칙** | 대문자 시작 | 소문자 시작 |
+| **반환값** | 새로 생성된 객체 | 함수의 반환값 |
+
+**🎯 실제 예제:**
+
+```javascript
+// 일반 함수에서 this 사용
+function calculateArea() {
+  return this.width * this.height;
+}
+
+// 1. 객체의 메서드로 사용
+const rectangle = {
+  width: 10,
+  height: 5,
+  area: calculateArea
+};
+console.log(rectangle.area()); // 50
+
+// 2. 다른 객체에서 재사용
+const square = {
+  width: 4,
+  height: 4,
+  area: calculateArea
+};
+console.log(square.area()); // 16
+
+// 3. call로 this 지정
+console.log(calculateArea.call({ width: 3, height: 7 })); // 21
+
+// 4. bind로 this 고정
+const fixedArea = calculateArea.bind({ width: 2, height: 8 });
+console.log(fixedArea()); // 16
+```
+
+**⚠️ 주의사항:**
+
+```javascript
+// 1. 일반 함수를 new로 호출하면 문제 발생
+function normalFunction() {
+  this.name = '일반 함수';
+  return '반환값';
+}
+
+// ❌ new로 호출 (비추천)
+const result = new normalFunction();
+console.log(result); // normalFunction { name: '일반 함수' }
+// 반환값이 무시되고 this 객체가 반환됨
+
+// ✅ 일반 호출
+const result2 = normalFunction();
+console.log(result2); // "반환값"
+
+// 2. 생성자 함수를 new 없이 호출하면 문제 발생
+function ConstructorFunction(name) {
+  this.name = name;
+}
+
+// ❌ new 없이 호출
+const result3 = ConstructorFunction('철수');
+console.log(result3); // undefined
+console.log(window.name); // '철수' (전역 객체에 추가됨)
+
+// ✅ new로 호출
+const result4 = new ConstructorFunction('영희');
+console.log(result4); // ConstructorFunction { name: '영희' }
+```
+
+**💡 핵심 정리:**
+
+1. **`this`는 모든 함수에서 사용 가능** (생성자 함수가 아니어도)
+2. **`this`는 함수 호출 방식에 따라 결정** (new, call, apply, bind, 메서드 호출)
+3. **생성자 함수는 `new`로 호출할 때만 의미가 있음**
+4. **일반 함수는 `this`를 사용하되 `new`로 호출하지 않음**
+
+#### **생성자 함수 명명 규칙**
+
+**❌ 잘못된 인식: "생성자 함수는 반드시 대문자로 시작해야 한다"**
+
+**✅ 올바른 이해: "생성자 함수는 관례적으로 대문자로 시작하는 것이 권장된다"**
+
+```javascript
+// 1. 소문자로 시작해도 생성자 함수로 동작함
+function person(name) {
+  this.name = name;
+}
+
+const p1 = new person('철수'); // ✅ 정상 동작
+console.log(p1); // person { name: '철수' }
+
+// 2. 대문자로 시작하는 것이 관례
+function Person(name) {
+  this.name = name;
+}
+
+const p2 = new Person('영희'); // ✅ 정상 동작
+console.log(p2); // Person { name: '영희' }
+
+// 3. 둘 다 동일하게 작동
+console.log(p1 instanceof person); // true
+console.log(p2 instanceof Person); // true
+```
+
+**🔍 JavaScript 엔진의 관점:**
+
+```javascript
+// JavaScript 엔진은 함수명의 대소문자를 구분하지 않음
+function lowercaseConstructor(name) {
+  this.name = name;
+  this.type = 'lowercase';
+}
+
+function UPPERCASECONSTRUCTOR(name) {
+  this.name = name;
+  this.type = 'uppercase';
+}
+
+function camelCaseConstructor(name) {
+  this.name = name;
+  this.type = 'camelCase';
+}
+
+// 모두 정상적으로 동작
+const obj1 = new lowercaseConstructor('test1');
+const obj2 = new UPPERCASECONSTRUCTOR('test2');
+const obj3 = new camelCaseConstructor('test3');
+
+console.log(obj1); // lowercaseConstructor { name: 'test1', type: 'lowercase' }
+console.log(obj2); // UPPERCASECONSTRUCTOR { name: 'test2', type: 'uppercase' }
+console.log(obj3); // camelCaseConstructor { name: 'test3', type: 'camelCase' }
+```
+
+**📋 명명 규칙 비교:**
+
+| 명명 방식 | 예시 | 동작 | 권장도 |
+|-----------|------|------|--------|
+| **PascalCase** | `Person`, `Car` | ✅ 정상 | ⭐⭐⭐⭐⭐ (강력 권장) |
+| **camelCase** | `person`, `car` | ✅ 정상 | ⭐⭐ (비권장) |
+| **snake_case** | `person_name` | ✅ 정상 | ⭐ (비권장) |
+| **UPPER_CASE** | `PERSON` | ✅ 정상 | ⭐ (비권장) |
+
+**🎯 왜 대문자로 시작하는 것이 권장되는가?**
+
+```javascript
+// 1. 코드 가독성 향상
+function User(name, email) {  // 생성자 함수임을 명확히 알 수 있음
+  this.name = name;
+  this.email = email;
+}
+
+function createUser(name, email) {  // 일반 함수임을 명확히 알 수 있음
+  return { name, email };
+}
+
+// 2. 실수 방지
+const user1 = new User('철수', 'test@test.com');     // ✅ 의도한 대로
+const user2 = new createUser('영희', 'test@test.com'); // ❌ 실수 (일반 함수를 new로 호출)
+
+// 3. 팀 협업에서 일관성
+// 모든 개발자가 동일한 규칙을 따르면 코드 이해가 쉬워짐
+```
+
+**⚠️ 실제 프로젝트에서의 예시:**
+
+```javascript
+// ❌ 비권장: 소문자로 시작하는 생성자 함수
+function user(name) {
+  this.name = name;
+}
+
+function product(title, price) {
+  this.title = title;
+  this.price = price;
+}
+
+// ✅ 권장: 대문자로 시작하는 생성자 함수
+function User(name) {
+  this.name = name;
+}
+
+function Product(title, price) {
+  this.title = title;
+  this.price = price;
+}
+
+// 사용 예시
+const user1 = new User('철수');
+const product1 = new Product('노트북', 1000000);
+```
+
+**🔧 ESLint 규칙:**
+
+```javascript
+// ESLint의 new-cap 규칙
+/* eslint new-cap: "error" */
+
+function person(name) {  // ❌ ESLint 에러
+  this.name = name;
+}
+
+function Person(name) {  // ✅ ESLint 통과
+  this.name = name;
+}
+```
+
+**💡 핵심 정리:**
+
+1. **기술적으로는 소문자로 시작해도 동작함**
+2. **관례적으로 대문자로 시작하는 것이 강력 권장**
+3. **코드 가독성과 팀 협업을 위해 규칙을 따르는 것이 중요**
+4. **ESLint 같은 도구로 규칙을 강제할 수 있음**
+
+**🎯 결론:**
+- **반드시 대문자로 시작해야 하는 것은 아님**
+- **하지만 대문자로 시작하는 것이 강력 권장됨**
+- **일관성 있는 코딩 스타일이 더 중요함**
+
 ### 2. **명시적 바인딩 (call, apply, bind)** 🎯
 
 `call`, `apply`, `bind` 메서드를 사용하여 `this`를 명시적으로 지정할 수 있습니다.
