@@ -1144,6 +1144,1401 @@ var index = 0;
 - 🧹 **정리**: 이벤트 리스너 등은 필요 없을 때 제거
 - ⚖️ **적절히 사용**: 모든 곳에 클로저를 쓸 필요는 없음
 
+## 클로저와 리턴의 관계 🤔
+
+### **❌ 잘못된 인식: "클로저는 반드시 외부 함수에서 리턴된 함수여야 한다"**
+
+**✅ 올바른 이해: "클로저는 외부 함수의 변수에 접근할 수 있는 내부 함수이며, 리턴과는 별개다"**
+
+```javascript
+// 1. 리턴되지 않는 클로저도 존재함
+function outerFunction() {
+  let count = 0;
+  
+  // 이 함수는 리턴되지 않지만 클로저임
+  function innerFunction() {
+    count++;
+    console.log(count);
+  }
+  
+  // 이벤트 리스너로 등록 (리턴하지 않음)
+  document.addEventListener('click', innerFunction);
+  
+  // setTimeout으로 등록 (리턴하지 않음)
+  setTimeout(innerFunction, 1000);
+  
+  // 즉시 실행 (리턴하지 않음)
+  innerFunction();
+}
+
+outerFunction(); // 클로저가 여러 곳에서 사용됨
+```
+
+### **🔍 클로저의 다양한 사용 패턴**
+
+```javascript
+// 1. 리턴되는 클로저 (가장 일반적)
+function createCounter() {
+  let count = 0;
+  return function() {
+    return ++count;
+  };
+}
+
+const counter = createCounter();
+console.log(counter()); // 1
+console.log(counter()); // 2
+
+// 2. 리턴되지 않는 클로저들
+function setupEventHandlers() {
+  let clickCount = 0;
+  
+  // 이벤트 핸들러 (리턴 안 함)
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  // DOM 이벤트에 등록
+  document.getElementById('button').onclick = handleClick;
+  
+  // setTimeout에 등록
+  setTimeout(handleClick, 1000);
+  
+  // 즉시 실행
+  handleClick();
+}
+
+setupEventHandlers(); // 모든 handleClick이 클로저
+
+// ⚠️ 중요: 실행 순서와 결과
+// 1. setupEventHandlers() 호출 시:
+//    - handleClick() 즉시 실행 → clickCount = 1 출력
+//    - 1초 후 setTimeout 실행 → clickCount = 2 출력
+// 2. 1초 후 버튼 클릭 시:
+//    - onclick 핸들러 실행 → clickCount = 3 출력
+// 
+// 따라서 1초 후 버튼 클릭하면 "클릭 횟수: 3"이 출력됨!
+
+// 🔍 핵심: handleClick 함수가 메모리에 살아있는 이유
+// 1. 이벤트 핸들러: document.getElementById('button').onclick = handleClick
+//    → DOM 요소가 handleClick 함수를 참조하고 있음
+//    → handleClick 함수가 가비지 컬렉션되지 않음
+//    → clickCount 변수도 함께 메모리에 유지됨
+
+// 2. setTimeout: setTimeout(handleClick, 1000)
+//    → JavaScript 엔진이 handleClick 함수를 참조하고 있음
+//    → 1초 후 실행될 때까지 메모리에 유지됨
+//    → clickCount 변수도 함께 메모리에 유지됨
+
+// 3. 클로저의 핵심: 외부 변수 참조
+//    → handleClick이 clickCount를 참조하고 있음
+//    → clickCount도 가비지 컬렉션되지 않음
+//    → 외부 함수의 실행 컨텍스트가 메모리에 유지됨
+
+// 3. 콜백 함수로 전달되는 클로저
+function processData(data) {
+  let processedCount = 0;
+  
+  data.forEach(function(item) { // 이 함수도 클로저
+    processedCount++;
+    console.log(`처리 중: ${item} (${processedCount}번째)`);
+  });
+}
+
+processData(['A', 'B', 'C']);
+
+// 4. 객체 메서드로 사용되는 클로저
+function createPerson(name) {
+  let age = 0;
+  
+  return {
+    getName: function() { return name; }, // 클로저
+    getAge: function() { return age; },   // 클로저
+    setAge: function(newAge) { age = newAge; }, // 클로저
+    celebrateBirthday: function() { // 클로저
+      age++;
+      console.log(`${name}의 생일! 나이: ${age}`);
+    }
+  };
+}
+
+const person = createPerson('철수');
+person.celebrateBirthday(); // 클로저 사용
+```
+
+### **🎯 클로저의 핵심 조건**
+
+```javascript
+// 클로저가 되기 위한 조건
+function outer() {
+  let outerVar = '외부 변수';
+  
+  // ✅ 클로저: 외부 변수에 접근
+  function inner1() {
+    console.log(outerVar); // 외부 변수 참조
+  }
+  
+  // ❌ 클로저 아님: 외부 변수에 접근하지 않음
+  function inner2() {
+    console.log('내부만 사용');
+  }
+  
+  // ✅ 클로저: 외부 변수에 접근
+  function inner3() {
+    let localVar = '로컬 변수';
+    console.log(outerVar + localVar); // 외부 변수 참조
+  }
+  
+  return { inner1, inner2, inner3 };
+}
+
+const { inner1, inner2, inner3 } = outer();
+inner1(); // 클로저 - 외부 변수 접근
+inner2(); // 클로저 아님 - 외부 변수 접근 안 함
+inner3(); // 클로저 - 외부 변수 접근
+```
+
+### **📋 클로저 vs 리턴 관계 정리**
+
+| 패턴 | 클로저 여부 | 리턴 여부 | 예시 |
+|------|-------------|-----------|------|
+| **리턴되는 클로저** | ✅ | ✅ | `return function() { ... }` |
+| **이벤트 핸들러** | ✅ | ❌ | `onclick = function() { ... }` |
+| **콜백 함수** | ✅ | ❌ | `setTimeout(function() { ... })` |
+| **즉시 실행** | ✅ | ❌ | `(function() { ... })()` |
+| **객체 메서드** | ✅ | ✅ | `{ method: function() { ... } }` |
+| **배열 메서드** | ✅ | ❌ | `arr.map(function() { ... })` |
+
+### **🔍 실제 사용 예시**
+
+```javascript
+// 1. 모듈 패턴 (리턴 사용)
+const Calculator = (function() {
+  let result = 0;
+  
+  return {
+    add: function(x) { result += x; return this; },
+    multiply: function(x) { result *= x; return this; },
+    getResult: function() { return result; }
+  };
+})();
+
+// 2. 이벤트 처리 (리턴 사용 안 함)
+function createButtonHandler(buttonId) {
+  let clickCount = 0;
+  
+  document.getElementById(buttonId).addEventListener('click', function() {
+    clickCount++;
+    console.log(`${buttonId} 버튼 클릭: ${clickCount}번`);
+  });
+}
+
+createButtonHandler('myButton');
+
+// 3. 타이머 관리 (리턴 사용 안 함)
+function createTimer(name) {
+  let seconds = 0;
+  
+  const timer = setInterval(function() {
+    seconds++;
+    console.log(`${name}: ${seconds}초 경과`);
+    
+    if (seconds >= 10) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
+createTimer('카운터');
+
+// 4. 데이터 처리 (리턴 사용 안 함)
+function processUserData(users) {
+  let processedCount = 0;
+  
+  users.forEach(function(user) {
+    processedCount++;
+    console.log(`처리 완료: ${user.name} (${processedCount}/${users.length})`);
+  });
+}
+
+processUserData([
+  { name: '철수' },
+  { name: '영희' },
+  { name: '민수' }
+]);
+```
+
+### **💡 핵심 포인트**
+
+1. **클로저는 리턴과 무관하게 외부 변수에 접근하는 내부 함수**
+2. **리턴되는 클로저가 가장 일반적이지만, 유일한 패턴은 아님**
+3. **이벤트 핸들러, 콜백, 타이머 등에서도 클로저가 자주 사용됨**
+4. **클로저의 핵심은 "외부 변수 접근"이지 "리턴"이 아님**
+
+### **🎯 결론**
+
+- **클로저 ≠ 리턴된 함수**
+- **클로저 = 외부 변수에 접근하는 내부 함수**
+- **리턴은 클로저 사용의 한 가지 방법일 뿐**
+
+## 클로저 정리하기 🧹
+
+### **❌ 문제: 메모리 누수 가능성**
+
+```javascript
+// 문제가 되는 코드
+function setupEventHandlers() {
+  let clickCount = 0;
+  
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  // 이벤트 핸들러 등록
+  document.getElementById('button').onclick = handleClick;
+  
+  // setTimeout 등록
+  setTimeout(handleClick, 1000);
+  
+  // 문제: 정리 방법이 없음!
+  // handleClick과 clickCount가 계속 메모리에 남아있음
+}
+
+setupEventHandlers();
+```
+
+### **✅ 해결책 1: 정리 함수 제공**
+
+```javascript
+function setupEventHandlers() {
+  let clickCount = 0;
+  let timeoutId = null;
+  
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  // 이벤트 핸들러 등록
+  const button = document.getElementById('button');
+  button.onclick = handleClick;
+  
+  // setTimeout 등록
+  timeoutId = setTimeout(handleClick, 1000);
+  
+  // 정리 함수 반환
+  return function cleanup() {
+    console.log('클로저 정리 중...');
+    
+    // 이벤트 핸들러 제거
+    button.onclick = null;
+    
+    // setTimeout 취소
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    
+    // 변수 정리 (선택적)
+    clickCount = 0;
+    
+    console.log('클로저 정리 완료!');
+  };
+}
+
+// 사용
+const cleanup = setupEventHandlers();
+
+// 5초 후 정리
+setTimeout(() => {
+  cleanup();
+}, 5000);
+```
+
+### **✅ 해결책 2: 클래스 기반 관리**
+
+```javascript
+class EventManager {
+  constructor() {
+    this.clickCount = 0;
+    this.timeoutId = null;
+    this.button = null;
+  }
+  
+  setup() {
+    this.button = document.getElementById('button');
+    this.button.onclick = this.handleClick.bind(this);
+    this.timeoutId = setTimeout(this.handleClick.bind(this), 1000);
+  }
+  
+  handleClick() {
+    this.clickCount++;
+    console.log(`클릭 횟수: ${this.clickCount}`);
+  }
+  
+  cleanup() {
+    console.log('EventManager 정리 중...');
+    
+    if (this.button) {
+      this.button.onclick = null;
+      this.button = null;
+    }
+    
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+    
+    this.clickCount = 0;
+    console.log('EventManager 정리 완료!');
+  }
+}
+
+// 사용
+const eventManager = new EventManager();
+eventManager.setup();
+
+// 5초 후 정리
+setTimeout(() => {
+  eventManager.cleanup();
+}, 5000);
+```
+
+### **✅ 해결책 3: WeakMap 사용**
+
+```javascript
+// WeakMap을 사용한 자동 정리
+const closures = new WeakMap();
+
+function setupEventHandlers() {
+  let clickCount = 0;
+  const button = document.getElementById('button');
+  
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  button.onclick = handleClick;
+  
+  // WeakMap에 정리 정보 저장
+  closures.set(button, {
+    cleanup: () => {
+      button.onclick = null;
+      clickCount = 0;
+    }
+  });
+  
+  return button;
+}
+
+// 사용
+const button = setupEventHandlers();
+
+// 버튼이 DOM에서 제거되면 WeakMap도 자동으로 정리됨
+// document.body.removeChild(button); // 자동 정리!
+```
+
+### **✅ 해결책 4: AbortController 사용**
+
+```javascript
+function setupEventHandlers() {
+  let clickCount = 0;
+  const controller = new AbortController();
+  const button = document.getElementById('button');
+  
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  // 이벤트 리스너 등록 (AbortSignal 사용)
+  button.addEventListener('click', handleClick, {
+    signal: controller.signal
+  });
+  
+  // setTimeout 등록
+  const timeoutId = setTimeout(handleClick, 1000);
+  
+  // 정리 함수 반환
+  return function cleanup() {
+    console.log('AbortController로 정리 중...');
+    
+    // 모든 이벤트 리스너 취소
+    controller.abort();
+    
+    // setTimeout 취소
+    clearTimeout(timeoutId);
+    
+    clickCount = 0;
+    console.log('정리 완료!');
+  };
+}
+
+// 사용
+const cleanup = setupEventHandlers();
+
+// 5초 후 정리
+setTimeout(cleanup, 5000);
+```
+
+### **✅ 해결책 5: 모듈 패턴으로 관리**
+
+```javascript
+const EventModule = (function() {
+  let clickCount = 0;
+  let timeoutId = null;
+  let button = null;
+  
+  function handleClick() {
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  return {
+    setup() {
+      button = document.getElementById('button');
+      button.onclick = handleClick;
+      timeoutId = setTimeout(handleClick, 1000);
+    },
+    
+    cleanup() {
+      console.log('모듈 정리 중...');
+      
+      if (button) {
+        button.onclick = null;
+        button = null;
+      }
+      
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      clickCount = 0;
+      console.log('모듈 정리 완료!');
+    },
+    
+    getClickCount() {
+      return clickCount;
+    }
+  };
+})();
+
+// 사용
+EventModule.setup();
+
+// 5초 후 정리
+setTimeout(() => {
+  EventModule.cleanup();
+}, 5000);
+```
+
+### **🔍 정리 방법 비교**
+
+| 방법 | 장점 | 단점 | 사용 시기 |
+|------|------|------|-----------|
+| **정리 함수 제공** | 간단, 직관적 | 수동 관리 필요 | 간단한 클로저 |
+| **클래스 기반** | 객체지향, 재사용성 | 복잡함 | 복잡한 상태 관리 |
+| **WeakMap** | 자동 정리 | 브라우저 지원 필요 | DOM 요소와 연관 |
+| **AbortController** | 표준 API | 최신 브라우저 필요 | 이벤트 리스너 중심 |
+| **모듈 패턴** | 캡슐화 | 전역 상태 | 전역 관리 필요 |
+
+### **💡 모범 사례**
+
+```javascript
+// 1. 항상 정리 함수 제공
+function createClosure() {
+  // ... 클로저 로직
+  
+  return {
+    // 사용자 API
+    doSomething() { /* ... */ },
+    
+    // 정리 함수
+    cleanup() { /* ... */ }
+  };
+}
+
+// 2. 사용 후 정리
+const closure = createClosure();
+// ... 사용
+closure.cleanup();
+
+// 3. try-finally로 확실한 정리
+const closure = createClosure();
+try {
+  // ... 사용
+} finally {
+  closure.cleanup();
+}
+
+// 4. 자동 정리 (페이지 언로드 시)
+window.addEventListener('beforeunload', () => {
+  closure.cleanup();
+});
+```
+
+### **🎯 핵심 원칙**
+
+1. **항상 정리 방법 제공** - 클로저 생성 시 정리 함수도 함께 제공
+2. **명시적 정리** - 사용 후 반드시 정리 함수 호출
+3. **자동 정리** - 페이지 언로드 시 자동으로 정리
+4. **메모리 모니터링** - 개발자 도구로 메모리 사용량 확인
+5. **적절한 사용** - 꼭 필요한 경우에만 클로저 사용
+
+## Cleanup 함수 구현 모범 사례 🛠️
+
+### **❌ 정리가 필요한 클로저들**
+
+```javascript
+// 1. setTimeout/setInterval 클로저
+function createTimer() {
+  let count = 0;
+  const timerId = setInterval(() => {
+    count++;
+    console.log(count);
+  }, 1000);
+  
+  // ❌ 문제: 정리 방법이 없음!
+  return { count };
+}
+
+// 2. 이벤트 핸들러 클로저
+function setupButton() {
+  let clickCount = 0;
+  const button = document.getElementById('button');
+  
+  button.addEventListener('click', function() {
+    clickCount++;
+    console.log(clickCount);
+  });
+  
+  // ❌ 문제: 정리 방법이 없음!
+}
+
+// 3. Promise 클로저
+function createAsyncTask() {
+  let data = [];
+  
+  fetch('/api/data')
+    .then(response => response.json())
+    .then(result => {
+      data = result;
+      console.log(data);
+    });
+  
+  // ❌ 문제: 정리 방법이 없음!
+}
+
+// 4. WebSocket 클로저
+function createWebSocket() {
+  let messages = [];
+  const ws = new WebSocket('ws://localhost:8080');
+  
+  ws.onmessage = function(event) {
+    messages.push(event.data);
+    console.log('메시지 수신:', messages.length);
+  };
+  
+  // ❌ 문제: WebSocket 연결이 계속 유지됨!
+}
+
+// 5. IntersectionObserver 클로저
+function createObserver() {
+  let visibleCount = 0;
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        visibleCount++;
+        console.log('보이는 요소:', visibleCount);
+      }
+    });
+  });
+  
+  // ❌ 문제: Observer가 계속 실행됨!
+}
+
+// 6. MutationObserver 클로저
+function createMutationWatcher() {
+  let changeCount = 0;
+  const observer = new MutationObserver(function(mutations) {
+    changeCount += mutations.length;
+    console.log('DOM 변경:', changeCount);
+  });
+  
+  // ❌ 문제: Observer가 계속 실행됨!
+}
+
+// 7. MediaRecorder 클로저
+function createRecorder() {
+  let audioData = [];
+  const stream = navigator.mediaDevices.getUserMedia({ audio: true });
+  
+  stream.then(mediaStream => {
+    const recorder = new MediaRecorder(mediaStream);
+    recorder.ondataavailable = function(event) {
+      audioData.push(event.data);
+      console.log('오디오 데이터:', audioData.length);
+    };
+  });
+  
+  // ❌ 문제: 미디어 스트림이 계속 유지됨!
+}
+
+// 8. Service Worker 클로저
+function createServiceWorker() {
+  let messageCount = 0;
+  
+  navigator.serviceWorker.register('/sw.js').then(registration => {
+    registration.addEventListener('message', function(event) {
+      messageCount++;
+      console.log('SW 메시지:', messageCount);
+    });
+  });
+  
+  // ❌ 문제: Service Worker가 계속 실행됨!
+}
+
+// 9. IndexedDB 클로저
+function createDatabase() {
+  let transactionCount = 0;
+  const request = indexedDB.open('MyDB', 1);
+  
+  request.onsuccess = function(event) {
+    const db = event.target.result;
+    db.onversionchange = function() {
+      transactionCount++;
+      console.log('DB 변경:', transactionCount);
+    };
+  };
+  
+  // ❌ 문제: DB 연결이 계속 유지됨!
+}
+
+// 10. Web Workers 클로저
+function createWorker() {
+  let taskCount = 0;
+  const worker = new Worker('/worker.js');
+  
+  worker.onmessage = function(event) {
+    taskCount++;
+    console.log('Worker 작업:', taskCount);
+  };
+  
+  // ❌ 문제: Worker가 계속 실행됨!
+}
+
+// 11. Custom Events 클로저
+function createEventEmitter() {
+  let eventCount = 0;
+  const target = new EventTarget();
+  
+  target.addEventListener('customEvent', function(event) {
+    eventCount++;
+    console.log('커스텀 이벤트:', eventCount);
+  });
+  
+  // ❌ 문제: EventTarget이 계속 유지됨!
+}
+
+// 12. Geolocation 클로저
+function createLocationTracker() {
+  let locationCount = 0;
+  const watchId = navigator.geolocation.watchPosition(function(position) {
+    locationCount++;
+    console.log('위치 업데이트:', locationCount);
+  });
+  
+  // ❌ 문제: 위치 추적이 계속 실행됨!
+}
+
+// 13. ResizeObserver 클로저
+function createResizeWatcher() {
+  let resizeCount = 0;
+  const observer = new ResizeObserver(function(entries) {
+    resizeCount += entries.length;
+    console.log('크기 변경:', resizeCount);
+  });
+  
+  // ❌ 문제: Observer가 계속 실행됨!
+}
+
+// 14. PerformanceObserver 클로저
+function createPerformanceWatcher() {
+  let performanceCount = 0;
+  const observer = new PerformanceObserver(function(list) {
+    performanceCount += list.getEntries().length;
+    console.log('성능 측정:', performanceCount);
+  });
+  
+  // ❌ 문제: Observer가 계속 실행됨!
+}
+
+// 15. BroadcastChannel 클로저
+function createBroadcastChannel() {
+  let messageCount = 0;
+  const channel = new BroadcastChannel('my-channel');
+  
+  channel.onmessage = function(event) {
+    messageCount++;
+    console.log('브로드캐스트:', messageCount);
+  };
+  
+  // ❌ 문제: Channel이 계속 유지됨!
+}
+```
+
+### **✅ 바람직한 Cleanup 함수 구현**
+
+#### **1. 기본 패턴: 정리 함수 반환**
+
+```javascript
+function createTimer() {
+  let count = 0;
+  let timerId = null;
+  
+  function start() {
+    timerId = setInterval(() => {
+      count++;
+      console.log(`카운트: ${count}`);
+    }, 1000);
+  }
+  
+  function stop() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+  
+  function cleanup() {
+    console.log('Timer 정리 중...');
+    stop();
+    count = 0;
+    console.log('Timer 정리 완료!');
+  }
+  
+  return {
+    start,
+    stop,
+    cleanup,
+    getCount: () => count
+  };
+}
+
+// 사용
+const timer = createTimer();
+timer.start();
+
+// 5초 후 정리
+setTimeout(() => {
+  timer.cleanup();
+}, 5000);
+```
+
+#### **2. 이벤트 핸들러 정리**
+
+```javascript
+function setupButton() {
+  let clickCount = 0;
+  const button = document.getElementById('button');
+  let isActive = false;
+  
+  function handleClick() {
+    if (!isActive) return;
+    clickCount++;
+    console.log(`클릭 횟수: ${clickCount}`);
+  }
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    button.addEventListener('click', handleClick);
+    console.log('이벤트 핸들러 등록됨');
+  }
+  
+  function stop() {
+    if (!isActive) return;
+    isActive = false;
+    button.removeEventListener('click', handleClick);
+    console.log('이벤트 핸들러 제거됨');
+  }
+  
+  function cleanup() {
+    console.log('Button 정리 중...');
+    stop();
+    clickCount = 0;
+    console.log('Button 정리 완료!');
+  }
+  
+  return {
+    start,
+    stop,
+    cleanup,
+    getClickCount: () => clickCount,
+    isActive: () => isActive
+  };
+}
+
+// 사용
+const buttonHandler = setupButton();
+buttonHandler.start();
+
+// 5초 후 정리
+setTimeout(() => {
+  buttonHandler.cleanup();
+}, 5000);
+```
+
+#### **3. AbortController를 사용한 고급 정리**
+
+```javascript
+function createAsyncTask() {
+  let data = [];
+  let controller = new AbortController();
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    fetch('/api/data', { signal: controller.signal })
+      .then(response => response.json())
+      .then(result => {
+        data = result;
+        console.log('데이터 로드됨:', data);
+      })
+      .catch(error => {
+        if (error.name !== 'AbortError') {
+          console.error('에러:', error);
+        }
+      });
+  }
+  
+  function stop() {
+    if (!isActive) return;
+    isActive = false;
+    controller.abort();
+    console.log('비동기 작업 취소됨');
+  }
+  
+  function cleanup() {
+    console.log('AsyncTask 정리 중...');
+    stop();
+    data = [];
+    // 새로운 AbortController 생성 (재사용 가능)
+    controller = new AbortController();
+    console.log('AsyncTask 정리 완료!');
+  }
+  
+  return {
+    start,
+    stop,
+    cleanup,
+    getData: () => data,
+    isActive: () => isActive
+  };
+}
+
+// 사용
+const asyncTask = createAsyncTask();
+asyncTask.start();
+
+// 3초 후 정리
+setTimeout(() => {
+  asyncTask.cleanup();
+}, 3000);
+```
+
+#### **4. 복합 클로저 정리**
+
+```javascript
+function createComplexClosure() {
+  let state = {
+    count: 0,
+    data: [],
+    isActive: false
+  };
+  
+  let timerId = null;
+  let button = null;
+  let controller = new AbortController();
+  
+  function handleClick() {
+    if (!state.isActive) return;
+    state.count++;
+    console.log(`클릭: ${state.count}`);
+  }
+  
+  function handleTimer() {
+    if (!state.isActive) return;
+    state.data.push(Date.now());
+    console.log(`타이머: ${state.data.length}개`);
+  }
+  
+  function start() {
+    if (state.isActive) return;
+    state.isActive = true;
+    
+    // 타이머 시작
+    timerId = setInterval(handleTimer, 2000);
+    
+    // 이벤트 핸들러 등록
+    button = document.getElementById('button');
+    button.addEventListener('click', handleClick, { signal: controller.signal });
+    
+    console.log('복합 클로저 시작됨');
+  }
+  
+  function stop() {
+    if (!state.isActive) return;
+    state.isActive = false;
+    
+    // 타이머 정리
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    
+    // 이벤트 핸들러 정리
+    if (button) {
+      button.removeEventListener('click', handleClick);
+      button = null;
+    }
+    
+    console.log('복합 클로저 중지됨');
+  }
+  
+  function cleanup() {
+    console.log('복합 클로저 정리 중...');
+    stop();
+    
+    // 상태 초기화
+    state = {
+      count: 0,
+      data: [],
+      isActive: false
+    };
+    
+    // 새로운 AbortController 생성
+    controller = new AbortController();
+    
+    console.log('복합 클로저 정리 완료!');
+  }
+  
+  return {
+    start,
+    stop,
+    cleanup,
+    getState: () => ({ ...state }),
+    isActive: () => state.isActive
+  };
+}
+
+// 사용
+const complex = createComplexClosure();
+complex.start();
+
+// 10초 후 정리
+setTimeout(() => {
+  complex.cleanup();
+}, 10000);
+```
+
+### **🔍 Cleanup 함수 구현 가이드라인**
+
+#### **1. 필수 요소들**
+
+```javascript
+function createClosure() {
+  // 상태 변수들
+  let state = { /* ... */ };
+  let timers = [];
+  let elements = [];
+  let controllers = [];
+  
+  function cleanup() {
+    // 1. 타이머 정리
+    timers.forEach(id => clearTimeout(id));
+    timers = [];
+    
+    // 2. 이벤트 핸들러 정리
+    elements.forEach(el => {
+      el.removeEventListener(/* ... */);
+    });
+    elements = [];
+    
+    // 3. AbortController 정리
+    controllers.forEach(controller => controller.abort());
+    controllers = [];
+    
+    // 4. 상태 초기화
+    state = { /* 초기값 */ };
+    
+    // 5. 로그 출력
+    console.log('정리 완료!');
+  }
+  
+  return { cleanup, /* ... */ };
+}
+```
+
+#### **2. 상태 관리**
+
+```javascript
+function createStatefulClosure() {
+  let state = {
+    isActive: false,
+    count: 0,
+    data: [],
+    timers: [],
+    elements: []
+  };
+  
+  function cleanup() {
+    // 활성 상태 확인
+    if (!state.isActive) {
+      console.log('이미 정리됨');
+      return;
+    }
+    
+    // 모든 리소스 정리
+    state.timers.forEach(id => clearTimeout(id));
+    state.elements.forEach(el => el.removeEventListener(/* ... */));
+    
+    // 상태 초기화
+    state = {
+      isActive: false,
+      count: 0,
+      data: [],
+      timers: [],
+      elements: []
+    };
+    
+    console.log('상태 정리 완료!');
+  }
+  
+  return { cleanup, getState: () => ({ ...state }) };
+}
+```
+
+#### **3. 에러 처리**
+
+```javascript
+function createSafeClosure() {
+  let state = { /* ... */ };
+  
+  function cleanup() {
+    try {
+      console.log('정리 시작...');
+      
+      // 안전한 정리 로직
+      if (state.timer) {
+        clearTimeout(state.timer);
+        state.timer = null;
+      }
+      
+      if (state.element) {
+        state.element.removeEventListener(/* ... */);
+        state.element = null;
+      }
+      
+      // 상태 초기화
+      state = { /* 초기값 */ };
+      
+      console.log('정리 완료!');
+    } catch (error) {
+      console.error('정리 중 에러:', error);
+    }
+  }
+  
+  return { cleanup };
+}
+```
+
+### **🔧 다양한 클로저 정리 방법**
+
+#### **1. WebSocket 클로저 정리**
+
+```javascript
+function createWebSocket() {
+  let messages = [];
+  let ws = null;
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    ws = new WebSocket('ws://localhost:8080');
+    ws.onmessage = function(event) {
+      messages.push(event.data);
+      console.log('메시지 수신:', messages.length);
+    };
+  }
+  
+  function cleanup() {
+    console.log('WebSocket 정리 중...');
+    
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+    
+    messages = [];
+    isActive = false;
+    
+    console.log('WebSocket 정리 완료!');
+  }
+  
+  return { start, cleanup, getMessages: () => messages };
+}
+```
+
+#### **2. Observer 클로저 정리**
+
+```javascript
+function createObserver() {
+  let visibleCount = 0;
+  let observer = null;
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    observer = new IntersectionObserver(function(entries) {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          visibleCount++;
+          console.log('보이는 요소:', visibleCount);
+        }
+      });
+    });
+    
+    // 요소 관찰 시작
+    document.querySelectorAll('.observe').forEach(el => {
+      observer.observe(el);
+    });
+  }
+  
+  function cleanup() {
+    console.log('Observer 정리 중...');
+    
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    
+    visibleCount = 0;
+    isActive = false;
+    
+    console.log('Observer 정리 완료!');
+  }
+  
+  return { start, cleanup, getCount: () => visibleCount };
+}
+```
+
+#### **3. MediaRecorder 클로저 정리**
+
+```javascript
+function createRecorder() {
+  let audioData = [];
+  let recorder = null;
+  let stream = null;
+  let isActive = false;
+  
+  async function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream);
+      
+      recorder.ondataavailable = function(event) {
+        audioData.push(event.data);
+        console.log('오디오 데이터:', audioData.length);
+      };
+      
+      recorder.start();
+    } catch (error) {
+      console.error('미디어 접근 실패:', error);
+    }
+  }
+  
+  function cleanup() {
+    console.log('MediaRecorder 정리 중...');
+    
+    if (recorder) {
+      recorder.stop();
+      recorder = null;
+    }
+    
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    
+    audioData = [];
+    isActive = false;
+    
+    console.log('MediaRecorder 정리 완료!');
+  }
+  
+  return { start, cleanup, getData: () => audioData };
+}
+```
+
+#### **4. Web Workers 클로저 정리**
+
+```javascript
+function createWorker() {
+  let taskCount = 0;
+  let worker = null;
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    worker = new Worker('/worker.js');
+    worker.onmessage = function(event) {
+      taskCount++;
+      console.log('Worker 작업:', taskCount);
+    };
+  }
+  
+  function cleanup() {
+    console.log('Web Worker 정리 중...');
+    
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+    
+    taskCount = 0;
+    isActive = false;
+    
+    console.log('Web Worker 정리 완료!');
+  }
+  
+  return { start, cleanup, getTaskCount: () => taskCount };
+}
+```
+
+#### **5. Geolocation 클로저 정리**
+
+```javascript
+function createLocationTracker() {
+  let locationCount = 0;
+  let watchId = null;
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    watchId = navigator.geolocation.watchPosition(
+      function(position) {
+        locationCount++;
+        console.log('위치 업데이트:', locationCount);
+      },
+      function(error) {
+        console.error('위치 오류:', error);
+      }
+    );
+  }
+  
+  function cleanup() {
+    console.log('Geolocation 정리 중...');
+    
+    if (watchId) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    
+    locationCount = 0;
+    isActive = false;
+    
+    console.log('Geolocation 정리 완료!');
+  }
+  
+  return { start, cleanup, getLocationCount: () => locationCount };
+}
+```
+
+#### **6. IndexedDB 클로저 정리**
+
+```javascript
+function createDatabase() {
+  let transactionCount = 0;
+  let db = null;
+  let isActive = false;
+  
+  function start() {
+    if (isActive) return;
+    isActive = true;
+    
+    const request = indexedDB.open('MyDB', 1);
+    
+    request.onsuccess = function(event) {
+      db = event.target.result;
+      db.onversionchange = function() {
+        transactionCount++;
+        console.log('DB 변경:', transactionCount);
+      };
+    };
+  }
+  
+  function cleanup() {
+    console.log('IndexedDB 정리 중...');
+    
+    if (db) {
+      db.close();
+      db = null;
+    }
+    
+    transactionCount = 0;
+    isActive = false;
+    
+    console.log('IndexedDB 정리 완료!');
+  }
+  
+  return { start, cleanup, getTransactionCount: () => transactionCount };
+}
+```
+
+### **📋 정리가 필요한 클로저 분류**
+
+| 카테고리 | 클로저 유형 | 정리 방법 | 중요도 |
+|----------|-------------|-----------|--------|
+| **타이머** | setTimeout, setInterval | clearTimeout, clearInterval | ⭐⭐⭐⭐⭐ |
+| **이벤트** | addEventListener | removeEventListener | ⭐⭐⭐⭐⭐ |
+| **네트워크** | WebSocket, fetch | close(), AbortController | ⭐⭐⭐⭐⭐ |
+| **Observer** | IntersectionObserver, MutationObserver | disconnect() | ⭐⭐⭐⭐ |
+| **미디어** | MediaRecorder, getUserMedia | stop(), getTracks().stop() | ⭐⭐⭐⭐ |
+| **위치** | Geolocation | clearWatch() | ⭐⭐⭐ |
+| **데이터베이스** | IndexedDB | close() | ⭐⭐⭐ |
+| **Worker** | Web Workers | terminate() | ⭐⭐⭐⭐ |
+| **성능** | PerformanceObserver | disconnect() | ⭐⭐ |
+| **통신** | BroadcastChannel | close() | ⭐⭐⭐ |
+
+### **💡 모범 사례 요약**
+
+1. **항상 cleanup 함수 제공** - 클로저 생성 시 정리 방법도 함께 제공
+2. **상태 관리** - isActive 플래그로 중복 정리 방지
+3. **리소스 정리** - 타이머, 이벤트 핸들러, AbortController 모두 정리
+4. **에러 처리** - try-catch로 안전한 정리
+5. **로깅** - 정리 과정을 로그로 확인
+6. **재사용 가능** - 정리 후 다시 사용할 수 있도록 설계
+7. **분류별 정리** - 각 리소스 타입에 맞는 정리 방법 사용
+8. **우선순위 관리** - 중요한 리소스부터 정리
+
 ## 다음 단계
 
 `basic.js`와 `advanced.js` 파일의 예제를 실행해보고, `exercises.js`의 문제를 풀어보세요!
