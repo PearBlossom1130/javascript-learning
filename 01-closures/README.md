@@ -3381,6 +3381,16 @@ function checkReferenceCount() {
     console.log(count);
   }, 1000);
   
+  // 🔍 핵심 이해:
+  // 1. () => { count++; console.log(count); } 이 화살표 함수가 클로저
+  // 2. 이 클로저는 count 변수를 참조하고 있음
+  // 3. setInterval이 이 클로저를 참조(사용)하고 있음
+  // 4. 따라서 외부 참조가 있는 상태
+  // 5. ⚠️ setInterval은 항상 메모리에 떠있는 상태!
+  // 6. ⚠️ clearInterval()로 정리하지 않으면 계속 실행됨!
+  // 7. 🌐 브라우저에서: 페이지를 새로고침하거나 닫으면 자동으로 정리됨
+  // 8. 🌐 브라우저에서: 페이지가 떠있는 동안만 실행됨
+  
   // 개발자 도구에서 확인:
   // 1. Console에서 timerId 입력
   // 2. 참조 체인 확인
