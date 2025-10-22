@@ -34,6 +34,9 @@
 ### [10. 동등 비교 (Equality)](./10-equality)
 느슨한 동등 비교(==)와 엄격한 동등 비교(===)의 차이
 
+### [11. Promise와 async/await](./11-promise-async-await)
+Promise 기반 비동기 처리와 async/await 문법
+
 ## 🚀 사용 방법
 
 각 폴더에는 다음이 포함되어 있습니다:
