@@ -1,10 +1,10 @@
 // ========================================
-// 비동기 처리 실습 문제
+// Promise와 async/await 실습 문제
 // ========================================
 
 /*
-문제 1: Promise 만들기
-1초 후에 '완료'를 반환하는 Promise를 만드세요.
+문제 1: Promise 기본 사용법
+1초 후에 '완료'를 반환하는 Promise를 만들고 사용하세요.
 */
 
 function createDelayedPromise() {
@@ -116,34 +116,7 @@ function withTimeout(promise, ms) {
 
 
 /*
-문제 7: 순차 vs 병렬 비교
-배열의 각 요소에 대해 비동기 작업을 수행하되,
-순차 실행과 병렬 실행의 시간 차이를 비교하세요.
-*/
-
-async function processItem(item) {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return item * 2;
-}
-
-async function processSequentially(items) {
-  // 여기에 순차 실행 코드를 작성하세요
-}
-
-async function processParallel(items) {
-  // 여기에 병렬 실행 코드를 작성하세요
-}
-
-// 테스트
-// const items = [1, 2, 3, 4, 5];
-// console.time('순차');
-// processSequentially(items).then(() => console.timeEnd('순차'));
-// console.time('병렬');
-// processParallel(items).then(() => console.timeEnd('병렬'));
-
-
-/*
-문제 8: 재시도 로직
+문제 7: 재시도 로직
 실패할 수 있는 비동기 작업을 최대 3번까지 재시도하는 함수를 작성하세요.
 */
 
@@ -166,14 +139,75 @@ async function retryOperation(operation, maxRetries) {
 // retryOperation(unstableOperation, 3).then(result => console.log(result));
 
 
+/*
+문제 8: Promise.allSettled 사용
+여러 Promise의 결과를 모두 수집하는 함수를 작성하세요.
+*/
+
+async function collectAllResults(promises) {
+  // 여기에 코드를 작성하세요
+}
+
+// 테스트
+// const promises = [
+//   Promise.resolve('성공1'),
+//   Promise.reject('실패1'),
+//   Promise.resolve('성공2')
+// ];
+// collectAllResults(promises).then(results => console.log(results));
+
+
+/*
+문제 9: Promise.race 사용
+여러 Promise 중 가장 빠른 것을 반환하는 함수를 작성하세요.
+*/
+
+async function getFastestResult(promises) {
+  // 여기에 코드를 작성하세요
+}
+
+// 테스트
+// const promises = [
+//   new Promise(resolve => setTimeout(() => resolve('느림'), 2000)),
+//   new Promise(resolve => setTimeout(() => resolve('빠름'), 500)),
+//   new Promise(resolve => setTimeout(() => resolve('보통'), 1000))
+// ];
+// getFastestResult(promises).then(result => console.log(result));
+
+
+/*
+문제 10: 캐싱과 Promise
+동일한 요청에 대해 캐시를 사용하는 함수를 작성하세요.
+*/
+
+class PromiseCache {
+  constructor() {
+    // 여기에 코드를 작성하세요
+  }
+  
+  async get(key, fetcher) {
+    // 여기에 코드를 작성하세요
+  }
+}
+
+// 테스트
+// const cache = new PromiseCache();
+// const expensiveOperation = (id) => {
+//   return new Promise(resolve => {
+//     setTimeout(() => resolve(`결과${id}`), 1000);
+//   });
+// };
+// 
+// cache.get('key1', () => expensiveOperation(1))
+//   .then(result => console.log(result)); // 계산
+// 
+// cache.get('key1', () => expensiveOperation(1))
+//   .then(result => console.log(result)); // 캐시
+
+
 // ========================================
 // 정답은 아래에 (스크롤하지 마세요!)
 // ========================================
-
-
-
-
-
 
 
 
@@ -279,35 +313,6 @@ withTimeout_answer(slowTask, 1000)
 
 // 정답 7
 console.log('\n=== 정답 7 ===');
-async function processSequentially_answer(items) {
-  const results = [];
-  for (const item of items) {
-    const result = await processItem(item);
-    results.push(result);
-  }
-  return results;
-}
-
-async function processParallel_answer(items) {
-  const results = await Promise.all(items.map(item => processItem(item)));
-  return results;
-}
-
-// (async () => {
-//   const items = [1, 2, 3];
-//   
-//   console.time('순차');
-//   await processSequentially_answer(items);
-//   console.timeEnd('순차');
-//   
-//   console.time('병렬');
-//   await processParallel_answer(items);
-//   console.timeEnd('병렬');
-// })();
-
-
-// 정답 8
-console.log('\n=== 정답 8 ===');
 async function retryOperation_answer(operation, maxRetries) {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -341,3 +346,83 @@ retryOperation_answer(unstableOperation, 3)
   .then(result => console.log('재시도 결과:', result))
   .catch(error => console.log('최종 실패:', error.message));
 
+
+// 정답 8
+console.log('\n=== 정답 8 ===');
+async function collectAllResults_answer(promises) {
+  const results = await Promise.allSettled(promises);
+  
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return { index, status: 'success', value: result.value };
+    } else {
+      return { index, status: 'error', error: result.reason };
+    }
+  });
+}
+
+const promises = [
+  Promise.resolve('성공1'),
+  Promise.reject('실패1'),
+  Promise.resolve('성공2')
+];
+
+collectAllResults_answer(promises).then(results => console.log('모든 결과:', results));
+
+
+// 정답 9
+console.log('\n=== 정답 9 ===');
+async function getFastestResult_answer(promises) {
+  return Promise.race(promises);
+}
+
+const promises_race = [
+  new Promise(resolve => setTimeout(() => resolve('느림'), 2000)),
+  new Promise(resolve => setTimeout(() => resolve('빠름'), 500)),
+  new Promise(resolve => setTimeout(() => resolve('보통'), 1000))
+];
+
+getFastestResult_answer(promises_race).then(result => console.log('가장 빠른 결과:', result));
+
+
+// 정답 10
+console.log('\n=== 정답 10 ===');
+class PromiseCache_answer {
+  constructor() {
+    this.cache = new Map();
+  }
+  
+  async get(key, fetcher) {
+    if (this.cache.has(key)) {
+      console.log(`캐시 히트: ${key}`);
+      return this.cache.get(key);
+    }
+    
+    console.log(`캐시 미스: ${key}, 계산 중...`);
+    const promise = fetcher();
+    this.cache.set(key, promise);
+    
+    try {
+      const result = await promise;
+      return result;
+    } catch (error) {
+      this.cache.delete(key);
+      throw error;
+    }
+  }
+}
+
+const cache = new PromiseCache_answer();
+const expensiveOperation = (id) => {
+  return new Promise(resolve => {
+    setTimeout(() => resolve(`결과${id}`), 1000);
+  });
+};
+
+cache.get('key1', () => expensiveOperation(1))
+  .then(result => console.log('첫 번째:', result));
+
+setTimeout(() => {
+  cache.get('key1', () => expensiveOperation(1))
+    .then(result => console.log('두 번째:', result));
+}, 1500);
