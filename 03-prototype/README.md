@@ -57,9 +57,176 @@ Person.prototype.getAge = function() {
   return this.age || '나이를 모르겠습니다';
 };
 
-// 생성자로 객체 생성
+// new 키워드로 생성자 함수 호출하여 객체 생성
 const person1 = new Person('철수');
 const person2 = new Person('영희');
+
+// ========================================
+// new 키워드의 내부 동작 과정 상세 설명
+// ========================================
+
+console.log('\n=== new 키워드 내부 동작 과정 ===');
+
+// 1. new Person('철수')가 실행될 때 내부적으로 일어나는 일:
+
+function simulateNewKeyword(constructor, ...args) {
+  console.log('1단계: 빈 객체 생성');
+  const obj = {}; // 빈 객체 생성
+  
+  console.log('2단계: obj.__proto__ = constructor.prototype 설정');
+  obj.__proto__ = constructor.prototype; // 프로토타입 연결
+  
+  console.log('3단계: constructor 함수를 obj를 this로 하여 호출');
+  const result = constructor.apply(obj, args); // this 바인딩하여 함수 호출
+  
+  console.log('4단계: 반환값 확인');
+  // constructor가 객체를 반환하면 그것을 사용, 아니면 생성된 obj 사용
+  if (typeof result === 'object' && result !== null) {
+    console.log('constructor가 객체를 반환함, 그것을 사용');
+    return result;
+  } else {
+    console.log('constructor가 객체를 반환하지 않음, 생성된 obj 사용');
+    return obj;
+  }
+}
+
+// 실제 new와 시뮬레이션 비교
+console.log('\n=== 실제 new vs 시뮬레이션 비교 ===');
+
+// 실제 new 사용
+const realPerson = new Person('실제');
+console.log('실제 new 결과:', realPerson);
+console.log('realPerson.__proto__ === Person.prototype:', realPerson.__proto__ === Person.prototype);
+
+// 시뮬레이션 사용
+const simulatedPerson = simulateNewKeyword(Person, '시뮬레이션');
+console.log('시뮬레이션 결과:', simulatedPerson);
+console.log('simulatedPerson.__proto__ === Person.prototype:', simulatedPerson.__proto__ === Person.prototype);
+
+// ========================================
+// new 키워드의 4가지 핵심 단계
+// ========================================
+
+console.log('\n=== new 키워드 4단계 상세 분석 ===');
+
+// 단계별로 분리하여 설명
+function step1_CreateEmptyObject() {
+  console.log('1단계: 빈 객체 생성');
+  const obj = {};
+  console.log('생성된 빈 객체:', obj);
+  return obj;
+}
+
+function step2_SetPrototype(obj, constructor) {
+  console.log('2단계: 프로토타입 연결');
+  console.log('연결 전 obj.__proto__:', obj.__proto__);
+  obj.__proto__ = constructor.prototype;
+  console.log('연결 후 obj.__proto__:', obj.__proto__);
+  console.log('obj.__proto__ === constructor.prototype:', obj.__proto__ === constructor.prototype);
+  return obj;
+}
+
+function step3_CallConstructor(obj, constructor, args) {
+  console.log('3단계: 생성자 함수 호출');
+  console.log('호출 전 this.name:', obj.name);
+  const result = constructor.apply(obj, args);
+  console.log('호출 후 this.name:', obj.name);
+  console.log('constructor 반환값:', result);
+  return result;
+}
+
+function step4_ReturnObject(obj, constructorResult) {
+  console.log('4단계: 최종 객체 반환');
+  if (typeof constructorResult === 'object' && constructorResult !== null) {
+    console.log('constructor가 객체를 반환했으므로 그것을 사용');
+    return constructorResult;
+  } else {
+    console.log('constructor가 객체를 반환하지 않았으므로 생성된 obj 사용');
+    return obj;
+  }
+}
+
+// 4단계 실행
+const step1Result = step1_CreateEmptyObject();
+const step2Result = step2_SetPrototype(step1Result, Person);
+const step3Result = step3_CallConstructor(step2Result, Person, ['4단계테스트']);
+const finalResult = step4_ReturnObject(step2Result, step3Result);
+
+console.log('최종 결과:', finalResult);
+
+// ========================================
+// new 키워드의 특별한 경우들
+// ========================================
+
+console.log('\n=== new 키워드 특별한 경우들 ===');
+
+// 1. constructor가 객체를 반환하는 경우
+function ConstructorWithReturn(name) {
+  this.name = name;
+  return { special: '반환된 객체' }; // 객체 반환
+}
+
+const obj1 = new ConstructorWithReturn('테스트');
+console.log('constructor가 객체를 반환한 경우:', obj1);
+
+// 2. constructor가 원시값을 반환하는 경우
+function ConstructorWithPrimitiveReturn(name) {
+  this.name = name;
+  return '원시값'; // 원시값 반환 (무시됨)
+}
+
+const obj2 = new ConstructorWithPrimitiveReturn('테스트');
+console.log('constructor가 원시값을 반환한 경우:', obj2);
+
+// 3. constructor가 null을 반환하는 경우
+function ConstructorWithNullReturn(name) {
+  this.name = name;
+  return null; // null 반환 (무시됨)
+}
+
+const obj3 = new ConstructorWithNullReturn('테스트');
+console.log('constructor가 null을 반환한 경우:', obj3);
+
+// ========================================
+// new 없이 호출했을 때의 차이점
+// ========================================
+
+console.log('\n=== new 없이 호출했을 때의 차이점 ===');
+
+// new 없이 호출
+console.log('new 없이 호출:');
+const withoutNew = Person('new없이');
+console.log('결과:', withoutNew); // undefined
+console.log('전역 객체의 name:', globalThis.name || window.name);
+
+// new로 호출
+console.log('\nnew로 호출:');
+const withNew = new Person('new있이');
+console.log('결과:', withNew); // Person 객체
+console.log('withNew.name:', withNew.name);
+
+// ========================================
+// 생성자 함수의 this 바인딩 확인
+// ========================================
+
+console.log('\n=== 생성자 함수의 this 바인딩 확인 ===');
+
+function TestConstructor(name) {
+  console.log('생성자 함수 내부 this:', this);
+  console.log('this === globalThis:', this === globalThis);
+  console.log('this === window:', this === window);
+  this.name = name;
+  console.log('this.name 설정 후:', this.name);
+}
+
+// new 없이 호출 (this는 전역 객체)
+console.log('new 없이 호출:');
+TestConstructor('전역this');
+
+// new로 호출 (this는 새로 생성된 객체)
+console.log('\nnew로 호출:');
+const testObj = new TestConstructor('새객체this');
+console.log('생성된 객체:', testObj);
 
 // 생성된 객체의 __proto__는 생성자의 prototype을 가리킴
 console.log(person1.__proto__ === Person.prototype); // true

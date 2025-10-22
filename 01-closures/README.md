@@ -631,6 +631,236 @@ const noLeak = createNoLeak();
 // hugeArray는 가비지 컬렉션됨 ✓
 ```
 
+**"필요한 것만 참조"의 의미와 방법 💡**
+
+클로저가 외부 변수를 참조하면, 그 변수가 메모리에 계속 남습니다. 따라서 **큰 객체 전체가 아닌, 필요한 값만 추출**해야 합니다.
+
+**상황별 비교 예제:**
+
+**예제 1: 사용자 데이터 처리**
+
+```javascript
+// ❌ 나쁜 방법 - 전체 데이터 참조 (1MB 메모리 사용)
+function createUserGreeting() {
+  const userData = {
+    id: 1,
+    name: '철수',
+    email: 'chulsoo@example.com',
+    profile: {
+      bio: '안녕하세요...',
+      avatar: 'base64_encoded_large_image...', // 큰 이미지 데이터
+      history: [...], // 수천 개의 기록
+      settings: {...}  // 수백 개의 설정
+    },
+    friends: [...],  // 수천 명의 친구 목록
+    posts: [...]     // 수백 개의 게시물
+  };
+  
+  return function() {
+    // name만 필요한데 userData 전체를 참조
+    return `안녕, ${userData.name}!`;
+  };
+}
+
+const greet = createUserGreeting();
+// userData 객체 전체(1MB)가 메모리에 계속 남음! 😱
+```
+
+```javascript
+// ✅ 좋은 방법 - 필요한 것만 추출 (수 바이트만 사용)
+function createUserGreeting() {
+  const userData = {
+    id: 1,
+    name: '철수',
+    email: 'chulsoo@example.com',
+    profile: { /* ... 큰 데이터 ... */ },
+    friends: [...],
+    posts: [...]
+  };
+  
+  // 필요한 것만 추출
+  const name = userData.name;  // '철수'만 저장
+  
+  return function() {
+    // name만 참조 (userData는 참조 안 함)
+    return `안녕, ${name}!`;
+  };
+}
+
+const greet = createUserGreeting();
+// 'name' 문자열만 메모리에 남음 (수 바이트) ✓
+// userData 전체는 가비지 컬렉션됨
+```
+
+**예제 2: API 응답 처리**
+
+```javascript
+// ❌ 나쁜 방법
+function processApiResponse() {
+  const response = {
+    status: 200,
+    headers: {...},  // 많은 헤더 정보
+    data: {
+      users: [...],  // 1000명의 사용자
+      metadata: {...}
+    },
+    rawBody: '...'  // 큰 JSON 문자열
+  };
+  
+  return {
+    getFirstUserName: function() {
+      // response 전체를 참조
+      return response.data.users[0].name;
+    },
+    getStatus: function() {
+      return response.status;
+    }
+  };
+}
+
+// response 전체가 메모리에 계속 남음
+```
+
+```javascript
+// ✅ 좋은 방법
+function processApiResponse() {
+  const response = {
+    status: 200,
+    headers: {...},
+    data: {
+      users: [...],
+      metadata: {...}
+    },
+    rawBody: '...'
+  };
+  
+  // 필요한 것만 추출
+  const firstUserName = response.data.users[0].name;
+  const status = response.status;
+  
+  return {
+    getFirstUserName: function() {
+      return firstUserName;  // 작은 문자열만 참조
+    },
+    getStatus: function() {
+      return status;  // 숫자 하나만 참조
+    }
+  };
+}
+
+// 문자열과 숫자만 메모리에 남음
+// response 객체는 가비지 컬렉션됨 ✓
+```
+
+**예제 3: 배열 처리**
+
+```javascript
+// ❌ 나쁜 방법
+function analyzeData() {
+  const bigData = [
+    { id: 1, value: 100, details: {...} },
+    { id: 2, value: 200, details: {...} },
+    // ... 10000개 항목
+  ];
+  
+  return {
+    getTotal: function() {
+      // bigData 전체를 참조
+      return bigData.reduce((sum, item) => sum + item.value, 0);
+    }
+  };
+}
+
+// 10000개 객체가 메모리에 계속 남음
+```
+
+```javascript
+// ✅ 좋은 방법 1: 계산 결과만 저장
+function analyzeData() {
+  const bigData = [
+    { id: 1, value: 100, details: {...} },
+    { id: 2, value: 200, details: {...} },
+    // ... 10000개 항목
+  ];
+  
+  // 계산 후 결과만 저장
+  const total = bigData.reduce((sum, item) => sum + item.value, 0);
+  
+  return {
+    getTotal: function() {
+      return total;  // 숫자 하나만 참조
+    }
+  };
+}
+
+// 숫자 하나만 메모리에 남음 ✓
+```
+
+```javascript
+// ✅ 좋은 방법 2: 필요한 데이터만 추출
+function analyzeData() {
+  const bigData = [
+    { id: 1, value: 100, details: {...} },
+    { id: 2, value: 200, details: {...} },
+    // ... 10000개 항목
+  ];
+  
+  // 필요한 것만 추출 (id, value만)
+  const values = bigData.map(item => ({ id: item.id, value: item.value }));
+  
+  return {
+    getTotal: function() {
+      return values.reduce((sum, item) => sum + item.value, 0);
+    },
+    getItem: function(id) {
+      return values.find(item => item.id === id);
+    }
+  };
+}
+
+// details 없이 작은 객체들만 메모리에 남음 ✓
+```
+
+**메모리 차이 비교:**
+
+```javascript
+// ❌ 나쁜 방법
+const hugeObject = {
+  data: new Array(1000000).fill('x'),  // ~1MB
+  metadata: {...}  // ~100KB
+};
+
+function bad() {
+  return function() {
+    return hugeObject.metadata.title;  // 전체 참조
+  };
+}
+// 메모리 사용: ~1.1MB
+
+// ✅ 좋은 방법
+const hugeObject = {
+  data: new Array(1000000).fill('x'),  // ~1MB
+  metadata: { title: '제목' }  // ~100KB
+};
+
+function good() {
+  const title = hugeObject.metadata.title;  // 필요한 것만
+  
+  return function() {
+    return title;  // 작은 문자열만 참조
+  };
+}
+// 메모리 사용: ~10 bytes (문자열만)
+// 절약: ~1.1MB! 🎉
+```
+
+**핵심 원칙:**
+
+1. **큰 객체 전체 참조 ❌** → 메모리 낭비
+2. **필요한 값만 추출 ✅** → 메모리 효율적
+3. **계산 가능한 것은 미리 계산** → 원본 데이터 버림
+4. **배열/객체는 필요한 속성만 추출** → 나머지는 가비지 컬렉션
+
 **실제 예시 - 이벤트 리스너:**
 
 ```javascript
