@@ -21,6 +21,219 @@ const person = new Person('철수');
 console.log(person); // Person { name: '철수', type: 'constructor' }
 ```
 
+#### **새로 생성된 객체 vs 생성자 함수의 차이**
+
+**🔍 핵심 개념:**
+- **생성자 함수**: 객체를 만들기 위해 사용하는 함수 (예: `Person`)
+- **새로 생성된 객체**: `new` 키워드로 생성자 함수를 호출했을 때 만들어지는 실제 객체 (예: `person`)
+
+```javascript
+// 1. 생성자 함수 정의
+function Person(name) {
+  this.name = name;
+  this.type = 'constructor';
+  console.log('생성자 함수 내부 this:', this);
+  console.log('this는 새로 생성된 객체:', this);
+}
+
+// 2. new 키워드로 호출
+const person = new Person('철수');
+
+// 3. 결과 분석
+console.log('생성자 함수:', Person); // [Function: Person]
+console.log('새로 생성된 객체:', person); // Person { name: '철수', type: 'constructor' }
+console.log('person은 Person의 인스턴스:', person instanceof Person); // true
+```
+
+**📝 단계별 과정:**
+
+```javascript
+// 1단계: new 키워드가 빈 객체 생성
+const newObject = {}; // 새로 생성된 객체
+
+// 2단계: 생성자 함수를 새 객체를 this로 하여 호출
+Person.call(newObject, '철수');
+// ↑                    ↑
+// 생성자 함수          새로 생성된 객체 (this)
+
+// 3단계: 새로 생성된 객체 반환
+const person = newObject; // 최종 결과
+```
+
+**🎯 실제 예제로 확인:**
+
+```javascript
+function Car(brand, model) {
+  // 생성자 함수 내부에서 this는 새로 생성된 객체를 가리킴
+  this.brand = brand;
+  this.model = model;
+  this.year = new Date().getFullYear();
+  
+  console.log('생성자 함수:', Car.name); // "Car"
+  console.log('새로 생성된 객체:', this); // Car { brand: 'BMW', model: 'X5', year: 2024 }
+  console.log('this === 새로 생성된 객체:', this instanceof Car); // true
+}
+
+const myCar = new Car('BMW', 'X5');
+
+console.log('생성자 함수:', Car); // [Function: Car]
+console.log('새로 생성된 객체:', myCar); // Car { brand: 'BMW', model: 'X5', year: 2024 }
+console.log('myCar는 Car의 인스턴스:', myCar instanceof Car); // true
+```
+
+**💡 핵심 포인트:**
+
+1. **생성자 함수**: 객체를 만드는 **템플릿** 역할
+2. **새로 생성된 객체**: 생성자 함수를 통해 **실제로 만들어진** 객체
+3. **this**: 생성자 함수 내부에서 **새로 생성된 객체**를 가리킴
+4. **관계**: `새로 생성된 객체 instanceof 생성자 함수 === true`
+
+**🔧 new 키워드의 내부 동작:**
+
+```javascript
+// new Person('철수')가 내부적으로 하는 일:
+
+// 1. 빈 객체 생성 (새로 생성된 객체)
+const newObject = {};
+
+// 2. 프로토타입 연결
+newObject.__proto__ = Person.prototype;
+
+// 3. 생성자 함수를 새 객체를 this로 하여 호출
+Person.call(newObject, '철수');
+
+// 4. 새로 생성된 객체 반환
+return newObject;
+```
+
+#### **생성자 함수가 될 수 있는 조건**
+
+**❌ 생성자 함수가 될 수 없는 경우:**
+
+```javascript
+// 1. 화살표 함수 - new로 호출 불가
+const ArrowFunction = () => {
+  this.name = '화살표';
+};
+// new ArrowFunction(); // TypeError: ArrowFunction is not a constructor
+
+// 2. 메서드 축약 문법 - new로 호출 불가
+const obj = {
+  method() {
+    this.name = '메서드';
+  }
+};
+// new obj.method(); // TypeError: obj.method is not a constructor
+
+// 3. 클래스의 메서드 - new로 호출 불가
+class MyClass {
+  method() {
+    this.name = '클래스 메서드';
+  }
+}
+const instance = new MyClass();
+// new instance.method(); // TypeError: instance.method is not a constructor
+
+// 4. 함수가 아닌 것들 - new로 호출 불가
+// new 123(); // TypeError: 123 is not a constructor
+// new 'string'(); // TypeError: string is not a constructor
+// new null(); // TypeError: null is not a constructor
+```
+
+**✅ 생성자 함수가 될 수 있는 경우:**
+
+```javascript
+// 1. function 선언문
+function Person(name) {
+  this.name = name;
+}
+const person1 = new Person('철수'); // ✅ 가능
+
+// 2. function 표현식
+const Car = function(brand) {
+  this.brand = brand;
+};
+const car1 = new Car('BMW'); // ✅ 가능
+
+// 3. 클래스 (ES6)
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+}
+const animal1 = new Animal('강아지'); // ✅ 가능
+
+// 4. 내장 생성자 함수들
+const arr = new Array(1, 2, 3); // ✅ 가능
+const obj = new Object({ a: 1 }); // ✅ 가능
+const date = new Date(); // ✅ 가능
+const regex = new RegExp('abc'); // ✅ 가능
+```
+
+**🔍 생성자 함수 판별 방법:**
+
+```javascript
+function checkConstructor(fn) {
+  console.log('함수명:', fn.name);
+  console.log('typeof:', typeof fn);
+  console.log('constructor 프로퍼티:', fn.constructor);
+  console.log('prototype 프로퍼티:', fn.prototype);
+  console.log('new로 호출 가능:', typeof fn === 'function' && fn.prototype);
+  
+  try {
+    new fn();
+    console.log('✅ 생성자 함수입니다');
+  } catch (error) {
+    console.log('❌ 생성자 함수가 아닙니다:', error.message);
+  }
+}
+
+// 테스트
+checkConstructor(function Person() {}); // ✅ 생성자 함수
+checkConstructor(() => {}); // ❌ 화살표 함수
+checkConstructor({ method() {} }.method); // ❌ 메서드
+checkConstructor(Array); // ✅ 내장 생성자
+checkConstructor(123); // ❌ 숫자
+```
+
+**📋 생성자 함수 조건 정리:**
+
+| 조건 | 설명 | 예시 |
+|------|------|------|
+| **function 키워드** | function 선언문/표현식 | `function Person() {}` |
+| **클래스** | ES6 class 문법 | `class Animal {}` |
+| **내장 생성자** | JavaScript 내장 함수 | `Array`, `Object`, `Date` |
+| **prototype 프로퍼티** | 함수에 prototype이 있어야 함 | `fn.prototype !== undefined` |
+| **화살표 함수 아님** | 화살표 함수는 생성자 불가 | `() => {}` ❌ |
+| **메서드 아님** | 객체 메서드는 생성자 불가 | `{ method() {} }` ❌ |
+
+**⚠️ 주의사항:**
+
+```javascript
+// 1. 생성자 함수는 대문자로 시작하는 것이 관례
+function person(name) { // 소문자 (비추천)
+  this.name = name;
+}
+
+function Person(name) { // 대문자 (추천)
+  this.name = name;
+}
+
+// 2. 생성자 함수는 new 없이 호출하면 문제 발생
+function Person(name) {
+  this.name = name;
+}
+
+// ❌ new 없이 호출
+const person1 = Person('철수'); // this가 전역 객체를 가리킴
+console.log(person1); // undefined
+console.log(window.name); // '철수' (전역 객체에 추가됨)
+
+// ✅ new로 호출
+const person2 = new Person('영희');
+console.log(person2); // Person { name: '영희' }
+```
+
 ### 2. **명시적 바인딩 (call, apply, bind)** 🎯
 
 `call`, `apply`, `bind` 메서드를 사용하여 `this`를 명시적으로 지정할 수 있습니다.
