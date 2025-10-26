@@ -45,19 +45,204 @@ console.log('새로 생성된 객체:', person); // Person { name: '철수', typ
 console.log('person은 Person의 인스턴스:', person instanceof Person); // true
 ```
 
+#### **일반 함수를 new로 호출하면?**
+
+**일반 함수도 `new` 키워드로 호출 가능**
+```javascript
+// 일반 함수 정의
+function normalFunction(name) {
+  this.name = name;
+  this.type = 'normal';
+  console.log('일반 함수 내부 this:', this);
+}
+
+// new로 호출
+const obj = new normalFunction('테스트');
+console.log(obj); // normalFunction { name: '테스트', type: 'normal' }
+console.log(obj instanceof normalFunction); // true
+```
+
+**일반 함수를 new로 호출할 때의 동작**
+```javascript
+function add(a, b) {
+  this.result = a + b;
+  console.log('this:', this);
+  return a + b;
+}
+
+// 1. 일반 호출
+const result1 = add(3, 4);
+console.log(result1); // 7
+console.log(this.result); // undefined (전역 객체에 추가됨)
+
+// 2. new로 호출
+const obj = new add(3, 4);
+console.log(obj); // add { result: 7 }
+console.log(obj.result); // 7
+```
+
+**⚠️ 주의사항: 일반 함수를 new로 호출하는 것은 권장되지 않음**
+
+**1. this가 없는 일반 함수를 new로 호출하면?**
+```javascript
+// this를 사용하지 않는 일반 함수
+function add(a, b) {
+  return a + b;
+}
+
+// 일반 호출
+const result1 = add(3, 4);
+console.log(result1); // 7
+
+// new로 호출 - 의미 없음!
+const obj = new add(3, 4);
+console.log(obj); // add {} (빈 객체)
+console.log(obj instanceof add); // true (하지만 의미 없음)
+```
+
+**2. this가 있는 일반 함수를 new로 호출하면?**
+```javascript
+// this를 사용하는 일반 함수
+function calculate(a, b) {
+  this.sum = a + b;
+  this.product = a * b;
+  return a + b; // 명시적 반환값
+}
+
+// 일반 호출
+const result2 = calculate(3, 4);
+console.log(result2); // 7
+console.log(this.sum); // 7 (전역 객체에 추가됨)
+
+// new로 호출
+const calc = new calculate(3, 4);
+console.log(calc); // calculate { sum: 7, product: 12 }
+console.log(calc.sum); // 7
+```
+
+**3. 좋은 예: 명시적인 생성자 함수**
+```javascript
+function Calculator(a, b) {
+  this.sum = a + b;
+  this.product = a * b;
+  // 생성자 함수는 명시적으로 return하지 않음
+}
+
+const calc2 = new Calculator(3, 4);
+console.log(calc2); // Calculator { sum: 7, product: 12 }
+```
+
+#### **console.log도 Web API 함수입니다!**
+
+**console.log의 정체**
+```javascript
+// console.log는 브라우저가 제공하는 Web API 함수
+console.log(typeof console); // "object"
+console.log(typeof console.log); // "function"
+
+// 브라우저가 JavaScript 엔진에 주입하는 전역 객체
+globalObject = {
+  console: {
+    log: function(message) { /* 브라우저 구현 */ },
+    error: function(message) { /* 브라우저 구현 */ },
+    warn: function(message) { /* 브라우저 구현 */ },
+    // ... 기타 콘솔 메서드들
+  }
+};
+```
+
+**console.log의 동작 방식**
+```javascript
+// 1. JavaScript 엔진이 console.log 호출
+console.log('Hello World');
+
+// 2. 브라우저의 Web API가 실제 출력 처리
+// 브라우저가 개발자 도구 콘솔에 메시지 표시
+
+// 3. 동기적으로 처리됨 (즉시 출력)
+console.log('1');
+console.log('2');
+console.log('3');
+// 출력: 1, 2, 3 (순차적)
+```
+
+**console.log vs 다른 Web API 비교**
+```javascript
+// 동기 Web API (즉시 실행)
+console.log('즉시 출력'); // 브라우저 콘솔에 즉시 표시
+document.getElementById('btn'); // DOM 요소 즉시 반환
+
+// 비동기 Web API (지연 실행)
+setTimeout(() => console.log('1초 후'), 1000); // 1초 후 실행
+fetch('/api/data'); // 네트워크 요청 완료 후 실행
+```
+
+**핵심 포인트**
+- **console.log는 Web API 함수입니다**
+- **브라우저가 제공하는 기능**
+- **동기적으로 처리** (즉시 출력)
+- **JavaScript 엔진이 아닌 브라우저가 실제 출력 담당**
+
 **📝 단계별 과정:**
 
 ```javascript
-// 1단계: new 키워드가 빈 객체 생성
-const newObject = {}; // 새로 생성된 객체
+// Person 생성자 함수 정의
+function Person(name) {
+  this.name = name;
+  this.type = 'constructor';
+  console.log('Person 생성자 실행:', this);
+}
 
-// 2단계: 생성자 함수를 새 객체를 this로 하여 호출
+// new Person('철수')의 내부 동작:
+
+// 1단계: 빈 객체 생성 (새로 생성된 객체)
+const newObject = {};
+console.log('1단계 - 빈 객체:', newObject); // {}
+
+// 2단계: 프로토타입 연결
+newObject.__proto__ = Person.prototype;
+console.log('2단계 - 프로토타입:', newObject.__proto__); // Person.prototype
+
+// 3단계: 생성자 함수를 새 객체를 this로 하여 호출
 Person.call(newObject, '철수');
-// ↑                    ↑
-// 생성자 함수          새로 생성된 객체 (this)
+console.log('3단계 - this 바인딩 후:', newObject); // { name: '철수', type: 'constructor' }
 
-// 3단계: 새로 생성된 객체 반환
-const person = newObject; // 최종 결과
+// 4단계: 새로 생성된 객체 반환
+return newObject;
+console.log('4단계 - 반환:', newObject); // { name: '철수', type: 'constructor' }
+```
+
+**실제 동작 확인**
+```javascript
+function Person(name) {
+  this.name = name;
+  this.type = 'constructor';
+  console.log('Person 생성자 실행, this:', this);
+}
+
+// new 없이 수동으로 동일한 작업 수행
+console.log('=== 수동 구현 ===');
+
+// 1단계: 빈 객체 생성
+const obj1 = {};
+console.log('빈 객체:', obj1); // {}
+
+// 2단계: 프로토타입 연결
+obj1.__proto__ = Person.prototype;
+console.log('프로토타입 연결:', obj1.__proto__ === Person.prototype); // true
+
+// 3단계: 생성자 함수 호출
+Person.call(obj1, '철수');
+console.log('this 바인딩 후:', obj1); // { name: '철수', type: 'constructor' }
+
+// === new 키워드 사용 ===
+console.log('\n=== new 키워드 ===');
+const person = new Person('철수');
+console.log('결과:', person); // Person { name: '철수', type: 'constructor' }
+
+// 둘 다 같은 결과
+console.log('obj1 === person:', obj1); 
+console.log('person instanceof Person:', person instanceof Person); // true
 ```
 
 **🎯 실제 예제로 확인:**
