@@ -6,7 +6,128 @@ JavaScript는 **프로토타입 기반 언어**입니다. 모든 객체는 다�
 
 ## 핵심 개념
 
-### 1. **[[Prototype]] (내부 프로토타입 링크)**
+### 1. **[[Prototype]] vs __proto__**
+
+**[[Prototype]]과 __proto__는 같은 것입니다!**
+
+**[[Prototype]] (내부 슬롯)**
+- ECMAScript 스펙에 정의된 내부 프로퍼티 이름
+- 숨겨진 프로퍼티로 직접 접근 불가
+- 모든 객체가 가진 프로토타입 링크
+- 브라우저 개발자 도구에서는 `[[Prototype]]`으로 표시
+
+**__proto__ (접근자)**
+- `[[Prototype]]`에 접근하기 위한 **비표준** 접근자
+- 모든 모던 브라우저에서 지원
+- 직접 접근 가능: `obj.__proto__`
+- ES2015부터 비공식적으로 표준화됨
+
+**실제 사용**
+```javascript
+const obj = { name: '철수' };
+
+// 두 가지 방법 모두 같은 결과
+console.log(obj.__proto__); // Object.prototype
+console.log(Object.getPrototypeOf(obj)); // Object.prototype (표준 방법)
+
+// 동일함
+console.log(obj.__proto__ === Object.prototype); // true
+console.log(Object.getPrototypeOf(obj) === Object.prototype); // true
+console.log(obj.__proto__ === Object.getPrototypeOf(obj)); // true
+```
+
+**접근 방법 비교**
+```javascript
+// 1. __proto__ 사용 (비표준, 하지만 널리 지원)
+const obj1 = {};
+console.log(obj1.__proto__); // Object.prototype
+
+// 2. Object.getPrototypeOf() 사용 (표준)
+const obj2 = {};
+console.log(Object.getPrototypeOf(obj2)); // Object.prototype
+
+// 3. 둘 다 같은 것
+console.log(obj1.__proto__ === Object.getPrototypeOf(obj2)); // true
+```
+
+**설정 방법 비교**
+```javascript
+// 1. __proto__ 사용
+const obj1 = {};
+obj1.__proto__ = Array.prototype;
+console.log(obj1.push); // [Function: push]
+
+// 2. Object.setPrototypeOf() 사용 (표준)
+const obj2 = {};
+Object.setPrototypeOf(obj2, Array.prototype);
+console.log(obj2.push); // [Function: push]
+
+// 3. Object.create() 사용 (표준)
+const obj3 = Object.create(Array.prototype);
+console.log(obj3.push); // [Function: push]
+```
+
+**📝 정확한 이해:**
+
+**원래 구조:**
+1. **[[Prototype]]**은 ECMAScript 스펙에서 정의한 **내부 슬롯 (Internal Slot)**
+2. 개발자가 직접 접근할 수 없는 **숨겨진 프로퍼티**
+3. 브라우저 개발자 도구에서만 `[[Prototype]]`으로 표시됨
+
+**🔍 내부 슬롯 (Internal Slot)이란?**
+- ECMAScript 스펙에 명시된 공식 용어
+- 객체의 내부 상태를 저장하는 공간
+- `[[ ]]` 이중 대괄호로 표기
+- JavaScript 코드로 직접 접근 불가
+- 브라우저 엔진 구현에서만 사용
+
+**내부 슬롯 예시**
+- `[[Prototype]]` - 프로토타입 링크
+- `[[PrivateElements]]` - private 필드 정보
+- `[[Call]]` - 함수 호출 가능 여부
+- `[[Constructor]]` - 생성자 여부
+
+**__proto__의 등장:**
+1. 개발자들이 `[[Prototype]]`에 접근하고 싶어함
+2. 브라우저들이 **비표준 접근자로 `__proto__` 구현**
+3. 내부적으로 `[[Prototype]]`에 접근하는 게터/세터
+4. ES2015부터 비공식적으로 표준 문서에 추가됨
+
+**실제 내부 동작:**
+```javascript
+// __proto__는 내부적으로 이렇게 동작
+const obj = {};
+
+// 내부적으로
+Object.defineProperty(obj, '__proto__', {
+  get() {
+    return this.[[Prototype]]; // 실제 내부 슬롯 접근
+  },
+  set(proto) {
+    this.[[Prototype]] = proto; // 실제 내부 슬롯 설정
+  }
+});
+```
+
+**표준 대안:**
+```javascript
+// 표준 방법 (ES5)
+Object.getPrototypeOf(obj); // [[Prototype]] 읽기
+Object.setPrototypeOf(obj, proto); // [[Prototype]] 설정
+
+// 비표준 방법 (널리 지원되지만 비표준)
+obj.__proto__; // [[Prototype]] 읽기
+obj.__proto__ = proto; // [[Prototype]] 설정
+```
+
+**핵심 정리**
+- **[[Prototype]]** = ECMAScript 스펙의 내부 슬롯 (직접 접근 불가)
+- **__proto__** = 내부 슬롯에 접근하기 위한 비표준 게터/세터
+- **둘 다 같은 프로토타입 링크를 가리킴**
+- **실무에서는 `__proto__` 또는 표준 메서드 `Object.getPrototypeOf()` 사용**
+
+### 2. **[[Prototype]] (내부 프로토타입 링크) 사용 예시**
+
 모든 객체가 가지는 숨겨진 프로퍼티로, `__proto__`로 접근 가능 (비표준이지만 널리 지원)
 
 ```javascript
