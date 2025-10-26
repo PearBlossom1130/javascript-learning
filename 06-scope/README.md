@@ -222,6 +222,169 @@ memoryState();
 // const 상태: TDZ (메모리 할당 안 됨)
 ```
 
+### 전혀 선언되지 않은 변수 vs let/const 호이스팅 에러 차이
+
+**핵심 차이점: 에러 메시지가 다릅니다!**
+
+```javascript
+function errorComparison() {
+  console.log('=== 에러 메시지 비교 ===');
+  
+  // 1. 전혀 선언되지 않은 변수
+  try {
+    console.log(neverDeclared);
+  } catch (error) {
+    console.log('1. 선언되지 않은 변수 에러:', error.message);
+  }
+  
+  // 2. let으로 선언된 변수 (TDZ)
+  try {
+    console.log(letDeclared);
+  } catch (error) {
+    console.log('2. let 변수 에러:', error.message);
+  }
+  let letDeclared = 'let';
+  
+  // 3. const로 선언된 변수 (TDZ)
+  try {
+    console.log(constDeclared);
+  } catch (error) {
+    console.log('3. const 변수 에러:', error.message);
+  }
+  const constDeclared = 'const';
+}
+
+errorComparison();
+
+// Node.js에서 실행 결과:
+// === 에러 메시지 비교 ===
+// 1. 선언되지 않은 변수 에러: neverDeclared is not defined
+// 2. let 변수 에러: Cannot access 'letDeclared' before initialization
+// 3. const 변수 에러: Cannot access 'constDeclared' before initialization
+```
+
+### 에러 메시지 분석
+
+| 상황 | 에러 메시지 | 의미 |
+|------|-------------|------|
+| **전혀 선언되지 않은 변수** | `is not defined` | 변수가 존재하지 않음 |
+| **let 변수 (TDZ)** | `Cannot access '변수명' before initialization` | 변수는 존재하지만 초기화 전 접근 |
+| **const 변수 (TDZ)** | `Cannot access '변수명' before initialization` | 변수는 존재하지만 초기화 전 접근 |
+
+### 상세한 에러 분석
+
+```javascript
+function detailedErrorAnalysis() {
+  console.log('=== 상세 에러 분석 ===');
+  
+  // 1. 전혀 선언되지 않은 변수
+  try {
+    console.log(undefinedVariable);
+  } catch (error) {
+    console.log('에러 타입:', error.name);
+    console.log('에러 메시지:', error.message);
+    console.log('의미: 변수가 스코프에 존재하지 않음');
+  }
+  
+  console.log('---');
+  
+  // 2. let 변수 (호이스팅됨, TDZ에 있음)
+  try {
+    console.log(hoistedLet);
+  } catch (error) {
+    console.log('에러 타입:', error.name);
+    console.log('에러 메시지:', error.message);
+    console.log('의미: 변수는 존재하지만 초기화 전 접근');
+  }
+  let hoistedLet = 'hoisted';
+  
+  console.log('---');
+  
+  // 3. const 변수 (호이스팅됨, TDZ에 있음)
+  try {
+    console.log(hoistedConst);
+  } catch (error) {
+    console.log('에러 타입:', error.name);
+    console.log('에러 메시지:', error.message);
+    console.log('의미: 변수는 존재하지만 초기화 전 접근');
+  }
+  const hoistedConst = 'hoisted';
+}
+
+detailedErrorAnalysis();
+
+// Node.js에서 실행 결과:
+// === 상세 에러 분석 ===
+// 에러 타입: ReferenceError
+// 에러 메시지: undefinedVariable is not defined
+// 의미: 변수가 스코프에 존재하지 않음
+// ---
+// 에러 타입: ReferenceError
+// 에러 메시지: Cannot access 'hoistedLet' before initialization
+// 의미: 변수는 존재하지만 초기화 전 접근
+// ---
+// 에러 타입: ReferenceError
+// 에러 타입: ReferenceError
+// 에러 메시지: Cannot access 'hoistedConst' before initialization
+// 의미: 변수는 존재하지만 초기화 전 접근
+```
+
+### typeof 연산자로 확인
+
+```javascript
+function typeofComparison() {
+  console.log('=== typeof 연산자 비교 ===');
+  
+  // 1. 전혀 선언되지 않은 변수
+  try {
+    console.log('선언되지 않은 변수:', typeof neverDeclared);
+  } catch (error) {
+    console.log('선언되지 않은 변수 에러:', error.message);
+  }
+  
+  // 2. let 변수 (TDZ)
+  try {
+    console.log('let 변수:', typeof letVar);
+  } catch (error) {
+    console.log('let 변수 에러:', error.message);
+  }
+  let letVar = 'let';
+  
+  // 3. const 변수 (TDZ)
+  try {
+    console.log('const 변수:', typeof constVar);
+  } catch (error) {
+    console.log('const 변수 에러:', error.message);
+  }
+  const constVar = 'const';
+}
+
+typeofComparison();
+
+// Node.js에서 실행 결과:
+// === typeof 연산자 비교 ===
+// 선언되지 않은 변수 에러: neverDeclared is not defined
+// let 변수 에러: Cannot access 'letVar' before initialization
+// const 변수 에러: Cannot access 'constVar' before initialization
+```
+
+### 핵심 정리
+
+**에러 측면에서의 차이점:**
+
+1. **전혀 선언되지 않은 변수**
+   - 에러: `ReferenceError: 변수명 is not defined`
+   - 의미: 변수가 스코프에 존재하지 않음
+
+2. **let/const 변수 (호이스팅됨, TDZ에 있음)**
+   - 에러: `ReferenceError: Cannot access '변수명' before initialization`
+   - 의미: 변수는 존재하지만 초기화 전 접근
+
+**중요한 점:**
+- 둘 다 `ReferenceError`이지만 **에러 메시지가 다름**
+- TDZ 에러는 "변수가 존재한다"는 것을 암시
+- 선언되지 않은 변수 에러는 "변수가 존재하지 않는다"는 것을 명시
+
 ### TDZ의 목적
 
 **1. 변수 선언 전 접근 방지**
